@@ -1,0 +1,53 @@
+function iseCertificateValidForm() {
+	// modify errorCount variable in ErrorMessages.js for scroll to error functionality
+	errorCount = 0;
+	document.getElementById("eCertificateError").innerHTML = "";
+	document.getElementById("captchaError").innerHTML = "";
+	var isValidForm = isvalidInput();
+	toEnNumerals(document.eCertificateForm.eCertificate);
+	var isValidForm2 = CheckValidationForm(
+		document.eCertificateForm.eCertificate.value,
+		"Number",
+		"eCertificateError");
+	toEnNumerals(document.eCertificateForm.captcha);
+	var isValidForm3 = CheckValidationForm(
+		document.eCertificateForm.captcha.value, "Number",
+		"captchaError");
+	if (!isValidForm || !isValidForm2 || !isValidForm3) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
+function isvalidInput() {
+	// modify errorCount variable in ErrorMessages.js for scroll to error functionality
+	errorCount = 0;
+	document.getElementById("txtNINError").innerHTML = "";
+	document.getElementById("registratioNumberError").innerHTML = "";
+
+	if (document.eCertificateForm.registratioNumber.value != null && document.eCertificateForm.registratioNumber.value != "") {
+		toEnNumerals(document.eCertificateForm.registratioNumber);
+		var isValidForm = CheckValidationForm(
+			document.eCertificateForm.registratioNumber.value,
+			"Number",
+			"registratioNumberError");
+	}
+	else
+		if (document.eCertificateForm.txtNIN.value != null && document.eCertificateForm.txtNIN.value != "") {
+			toEnNumerals(document.eCertificateForm.txtNIN)
+			var isValidForm2 = CheckValidationForm(
+				document.eCertificateForm.txtNIN.value,
+				"NINOrIqama",
+				"txtNINError");
+		}
+		else {
+			showError("error1", "txtNINError");
+			showError("error1", "registratioNumberError");
+		}
+	if (isValidForm || isValidForm2) {
+		return true;
+	} else {
+		return false;
+	}
+}
