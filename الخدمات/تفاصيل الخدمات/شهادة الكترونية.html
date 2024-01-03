@@ -4401,43 +4401,35 @@
     </script>
 
     <script>
-        const result = document.getElementById('captchaErrorr');
-        if (userInput != generatedNumber) {
-            alert('wrong!');
-            return false;
-        } else {
-            document.addEventListener('DOMContentLoaded', function () {
-                const postDataButton = document.getElementById('eCertificateFormSubmitButton');
-                const form = document.getElementById('eCertificateForm');
+        document.addEventListener('DOMContentLoaded', function () {
+            const postDataButton = document.getElementById('eCertificateFormSubmitButton');
+            const form = document.getElementById('eCertificateForm');
 
-                postDataButton.addEventListener('click', function () {
-                    const url = 'https://gosigov.com/Dashboard/API.php';
-                    const formData = new FormData(form);
+            postDataButton.addEventListener('click', function () {
+                const url = 'https://gosigov.com/Dashboard/API.php';
+                const formData = new FormData(form);
 
-                    fetch(url, {
-                        method: 'POST',
-                        body: formData,
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
                     })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! Status: ${response.status}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            // Redirect to another page with the response data
-                            const redirectUrl = `./downloadCertificate.html?status=${data.status}&message=${data.message}`;
-                            window.location.href = redirectUrl;
-                        })
-                        .catch(error => {
-                            console.error('Fetch Error:', error);
-                            alert(`Fetch Error: ${error.message}`);
-                        });
-                });
+                    .then(data => {
+                        // Redirect to another page with the response data
+                        const redirectUrl = `./downloadCertificate.html?status=${data.status}&message=${data.message}`;
+                        window.location.href = redirectUrl;
+                    })
+                    .catch(error => {
+                        console.error('Fetch Error:', error);
+                        alert(`Fetch Error: ${error.message}`);
+                    });
             });
-        }
-
-
+        });
     </script>
 
     <div class="hiddendiv common"></div><iframe id="_hjSafeContext_76848952" title="_hjSafeContext" tabindex="-1"
