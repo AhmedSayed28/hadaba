@@ -1,5 +1,4 @@
 var errorCount = 0;
-var isENlang = false;
 var lang;
 if (
 	isENlang

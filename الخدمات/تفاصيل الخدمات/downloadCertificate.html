@@ -2770,10 +2770,8 @@
 
                                     <br>
                                     <div class="fa-solid fa-download download-icon-border">
-                                        <a id="certificateURL"
-                                            href="blob:https://www.gosi.gov.sa/6eba8408-b237-43c6-8f2a-aea33c2d9f3f"
-                                            class="download" target="_blank" download="eCertificate-59653556 .pdf"
-                                            data-ajax="false"> تحميل الشهادة </a>
+                                        <a id="certificateURL" class="download" target="_blank"
+                                            download="eCertificate-59653556 .pdf" data-ajax="false"> تحميل الشهادة </a>
                                     </div>
 
 
@@ -4032,7 +4030,29 @@
         </div>
     </div>
     <div id="my-app"></div>
-</body><grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open">
+    <script>
+        // Function to get URL parameters by name
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+        }
+
+        // Get status and message parameters from the URL
+        var status = getParameterByName('status');
+        var message = getParameterByName('message');
+        const myAnchor = document.getElementById('certificateURL');
+        myAnchor.href = `blob:${message}`;
+
+
+        // You can update the DOM or perform other actions based on these values
+    </script>
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open">
         <style>
             div.grammarly-desktop-integration {
                 position: absolute;

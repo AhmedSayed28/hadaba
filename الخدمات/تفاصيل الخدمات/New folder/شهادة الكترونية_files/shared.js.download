@@ -14,7 +14,6 @@ var isOnIOS = navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/i
 var eventName = isOnIOS ? "pagehide" : "beforeunload";
 var hideEndMsg;
 var audio;
-var dotsShown=false;
 var endChatTimer, currSeconds = 0;
 var openInterval = [];
 var customChatConfig = null;
@@ -1003,7 +1002,6 @@ function appendCustomerChat(chat_msg) {
 }
 
 function createGenWelcomeMsg(chat_msg, user) {
-    removeDots();
     const today = new Date();
     const timeStr = today.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
     var msg = chat_msg.msg + '<br>';
@@ -1108,15 +1106,12 @@ function appendAgentChat(chat_msg) {
 
 function showDots() {
     //setTimeout(1000);
-    if(!dotsShown){
-        var dots = '<div class="loader-div" id="dots">' +
-            '<span></span>' +
-            '<span></span>' +
-            '<span></span>' +
-            '</div>';
-        $('#dotsContainer').append(dots);
-        dotsShown=true;
-    }
+    var dots = '<div class="loader-div" id="dots">' +
+        '<span></span>' +
+        '<span></span>' +
+        '<span></span>' +
+        '</div>';
+    $('#dotsContainer').append(dots);
     //$('#chat_pane').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
     //$('#chat-conv').append(dots); 
     //======
@@ -1125,7 +1120,6 @@ function showDots() {
 }
 
 function removeDots() {
-    dotsShown=false;
     if ($('#dots').length) {
         $("#dots").remove();
     }

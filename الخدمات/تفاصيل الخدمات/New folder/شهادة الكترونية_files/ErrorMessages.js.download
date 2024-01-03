@@ -8,6 +8,10 @@ if (
 else
 	lang = "ar";
 var localizedStrings = {
+	error400: {
+		en: "the number should match the pattern",
+		ar: "الرمز المدخل خطأ"
+	},
 	error1: {
 		en: "Please fill out this field",
 		ar: "هذا الحقل مطلوب"
