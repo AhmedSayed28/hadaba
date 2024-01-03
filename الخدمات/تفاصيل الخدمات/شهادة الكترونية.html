@@ -2842,14 +2842,6 @@
 
                                                     <!-- Loading the Page Attribute -->
 
-
-
-
-
-
-
-
-
                                                     <!-- Test the value to see, if the page who called the sideNav is the parent then mark it as selected : if not just display the page in the sideNav -->
                                                     <li data-toggle="collapse" data-target="#menu-collapse"><a
                                                             href="https://www.gosi.gov.sa/ss/GOSIOnline/Verify_e-Certificate"
@@ -4391,6 +4383,7 @@
             } else {
                 result.textContent = 'الرمز المدخل خطأ!';
                 result.style.color = 'red';
+                window.location.reload();
                 return false;
             }
 
@@ -4424,8 +4417,7 @@
                         window.location.href = redirectUrl;
                     })
                     .catch(error => {
-                        console.error('Fetch Error:', error);
-                        alert(`Fetch Error: ${error.message}`);
+                        window.location.reload();
                     });
             });
         });
