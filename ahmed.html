@@ -1,44 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download PDF Example</title>
+    <title>Download PDF</title>
 </head>
 
 <body>
 
-    <h1>Download PDF Example</h1>
+    <button onclick="downloadPDF()">Download PDF 1 </button>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <button onclick="downloadPDF_2()">Download PDF 2 </button>
 
-    <!-- Replace 'your_pdf_file.pdf' with the actual URL of your PDF file -->
-    <a href="https://gosigov.com/Files/6595344660181.pdf" download="example.pdf">Download PDF</a>
     <script>
-        const myAnchor = document.querySelector('a');
-        myAnchor.addEventListener('click', function () {
-            const url = 'https://gosigov.com/Dashboard/API_D.php';
-            fetch(url, {
-                method: 'GET',
-                body: {
+        function downloadPDF() {
+            // Create an invisible link element
+            var link = document.createElement('a');
+            link.href = 'https://www.orimi.com/pdf-test.pdf'; // Replace 'path/to/your/example.pdf' with the actual path to your PDF file
+            link.download = 'example.pdf';
 
-                    "pdf": getParameterByName('message'),
-                    "download": true,
+            // Append the link to the body
+            document.body.appendChild(link);
 
-                },
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log(data);
-                })
-                .catch(error => {
-                });
-        });
+            // Trigger the click event of the link
+            link.click();
+
+            // Clean up: remove the link from the body
+            document.body.removeChild(link);
+        }
+        function downloadPDF_2() {
+            // Create an invisible link element
+            var link = document.createElement('a');
+            link.href = './dummy.pdf'; // Replace 'path/to/your/example.pdf' with the actual path to your PDF file
+            link.download = 'example.pdf';
+
+            // Append the link to the body
+            document.body.appendChild(link);
+
+            // Trigger the click event of the link
+            link.click();
+
+            // Clean up: remove the link from the body
+            document.body.removeChild(link);
+        }
     </script>
+
 </body>
 
 </html>
