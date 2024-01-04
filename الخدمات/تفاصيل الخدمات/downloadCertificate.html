@@ -2768,47 +2768,48 @@ readfile('path/to/your-pdf-file.pdf');
 
 
                                     <br>
-                                    <div style="display: none;" class="fa-solid fa-download download-icon-border">
-                                        <a id="certificateURL" class="download" target="_blank" data-ajax="false"> تحميل
-                                            الشهادة </a>
-                                        </diva </div>
-                                    </div>
-                                    <div class="row">
-
+                                    <div class="fa-solid fa-download download-icon-border">
+                                        <button id="certificateURLL" onclick="downloadPdf()" class="download"
+                                            target="_blank"> تحميل
+                                            الشهادة </button>
                                     </div>
                                 </div>
-
-
-                                <div class="col-xs-12 util-padding-top-20">
-
-
-
-                                    <a href="./شهادة الكترونية.html" data-ajax="false"> <input
-                                            class="btn primary-button" type="button" value="إستعلام عن شهادة اخرى">
-                                    </a>
-
+                                <div class="row">
 
                                 </div>
-
                             </div>
-                        </div>
-                    </div>
-                </div>
+
+
+                            <div class="col-xs-12 util-padding-top-20">
 
 
 
-                <!-- CONTENT END -->
-                <div class="footer container-fluid footer-wrapper">
-                    <div class="footer-top row">
-                        <div class="container">
-                            <div class="row">
-
+                                <a href="./شهادة الكترونية.html" data-ajax="false"> <input class="btn primary-button"
+                                        type="button" value="إستعلام عن شهادة اخرى">
+                                </a>
 
 
                             </div>
+
                         </div>
                     </div>
                 </div>
+            </div>
+
+
+
+            <!-- CONTENT END -->
+            <div class="footer container-fluid footer-wrapper">
+                <div class="footer-top row">
+                    <div class="container">
+                        <div class="row">
+
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
     </section>
     <!-- WCS code start -->
     <!-- Loading the Header Asset -->
@@ -3932,29 +3933,13 @@ readfile('path/to/your-pdf-file.pdf');
             $("#checkbox_disclaimer").click(function () {
                 if ($(this).is(':checked'))
                     $(".download-icon-border").show();
-                const url = 'https://gosigov.com/Dashboard/API_D.php?pdf=65960a794cc4c.pdf&download=true';
-                fetch(url, {
-                    method: 'POST',
-
-                })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log(data);
-                    })
-                    .catch(error => {
-                        alert('There has been a problem with your fetch operation: ' + error.message);
-                    });
-
                 $(".checkbox_disclaimer").hide();
             });
 
         });
     </script>
+
+
     <script src="./downloadCertificate_files/ErrorMessages(1).js.download"></script>
     <script src="./downloadCertificate_files/GOSI_Common_Valdition(1).js.download"></script>
     <script src="./downloadCertificate_files/Verify_eCertificate.js.download"></script>
@@ -3978,7 +3963,6 @@ readfile('path/to/your-pdf-file.pdf');
             var isChecked = $('#checkbox_disclaimer').is(":checked")
             if (isChecked) {
                 $('#certificateURL').show();
-
             } else {
                 $('#certificateURL').hide();
             }
@@ -4029,6 +4013,28 @@ readfile('path/to/your-pdf-file.pdf');
         const myAnchor = document.getElementById('certificateURL');
         myAnchor.href = message;
         // You can update the DOM or perform other actions based on these values
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        $('#certificateURLL').on('click', function () {
+            $.ajax({
+                url: getParameterByName('message'),
+                type: 'GET',
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function (data) {
+                    var a = document.createElement('a');
+                    var url = window.URL.createObjectURL(data);
+                    a.href = url;
+                    a.download = 'ahmed.pdf';
+                    document.body.append(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                }
+            });
+        });
     </script>
 </body>
 <grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open">
