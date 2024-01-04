@@ -2777,48 +2777,46 @@ readfile('path/to/your-pdf-file.pdf');
 
                                     <br>
                                     <div style="display: none;" class="fa-solid fa-download download-icon-border">
-                                        <a href="https://gosigov.com/Files/6595344660181.pdf" id="certificateURL"
-                                            class="download" target="_blank" download="eCertificate-59653556 .pdf"
-                                            data-ajax="false"> تحميل الشهادة </a>
+                                        <a id="certificateURL" class="download" target="_blank" data-ajax="false"> تحميل
+                                            الشهادة </a>
+                                        </diva </div>
+                                    </div>
+                                    <div class="row">
+
                                     </div>
                                 </div>
+
+
+                                <div class="col-xs-12 util-padding-top-20">
+
+
+
+                                    <a href="./شهادة الكترونية.html" data-ajax="false"> <input
+                                            class="btn primary-button" type="button" value="إستعلام عن شهادة اخرى">
+                                    </a>
+
+
+                                </div>
+
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- CONTENT END -->
+                <div class="footer container-fluid footer-wrapper">
+                    <div class="footer-top row">
+                        <div class="container">
                             <div class="row">
 
+
+
                             </div>
                         </div>
-
-
-                        <div class="col-xs-12 util-padding-top-20">
-
-
-
-                            <a href="./شهادة الكترونية.html" data-ajax="false"> <input class="btn primary-button"
-                                    type="button" value="إستعلام عن شهادة اخرى">
-                            </a>
-
-
-                        </div>
-
                     </div>
                 </div>
-            </div>
-        </div>
-
-
-
-        <!-- CONTENT END -->
-        <div class="footer container-fluid footer-wrapper">
-            <div class="footer-top row">
-                <div class="container">
-                    <div class="row">
-
-
-
-                    </div>
-                </div>
-            </div>
-        </div>
     </section>
     <!-- WCS code start -->
     <!-- Loading the Header Asset -->
@@ -3497,47 +3495,7 @@ readfile('path/to/your-pdf-file.pdf');
                 </div>
                 <!--End Quick Links -->
 
-                <!--Start User Chat Fields -->
-                <!-- <div class=" col-xs-12 bot_fields" id="formBody" style="display:none">
-        <form class="primary-form" autocomplete="on" style="margin-top:-15px;">
-            <div class="form-group">
-                <label for="fname">
-            الاسم <sup>*</sup>
-        </label>
-                <input class="form-control" type="text" name="fname" id="fname" placeholder="اكتب اسمك" maxlength="50" />
-                <div class="form-error" id="fname_error" style="font-size:10px;"></div>
 
-                <label for="emailid">
-            البريد الإلكتروني <sup>*</sup>
-        </label>
-                <input class="form-control" type="text" name="emailid" id="emailid" placeholder="youremail@example.com" maxlength="50" />
-                <div class="form-error" id="emailid_error" style="font-size:10px;"></div>
-
-                <label for="phonenum">
-            رقم الجوال <sup>*</sup>
-        </label>
-                <input class="form-control" type="text" name="phonenum" id="phonenum" placeholder="05X XXX XXXX" maxlength="10" />
-                <div class="form-error" id="phonenum_error" style="font-size:10px;"></div>
-
-                <label for="captchaForChat">
-            رمز التحقق <sup>*</sup>
-        </label>
-                <div class="row">
-                    <div class="col-xs-6">
-                        <input id="captchaForChat" name="captchaForChat" type="text" class="form-control form-group-captcha" maxlength="4" placeholder="رمز التحقق">
-                        <div class="form-error" id="captchaForChatError" style="font-size:10px;"></div>
-                    </div>
-                    <div class="col-xs-6">
-                        <img alt="img" src="" class="img-reponsive form-group-captcha-image" id="captchaForChatImage" />
-                    </div>
-                </div>
-
-                <input type="hidden" name="activityID" id="activityID" value="" />
-                <input class="btn primary-button" id="StartChatBtn" value="بدء المحادثة" style="width:100%; margin-top:10px; margin-bottom:-20px;">
-            </div>
-        </form>
-    </div> -->
-                <!--End User Chat Fields -->
 
                 <!--Start User Chat -->
                 <div class="col-xs-12 chat_window" id="myForm" style="display:none">
@@ -4048,10 +4006,10 @@ readfile('path/to/your-pdf-file.pdf');
         }
 
         // Get status and message parameters from the URL
-        // var status = getParameterByName('status');
-        // var message = getParameterByName('message');
-        // const myAnchor = document.getElementById('certificateURL');
-        // myAnchor.href = message;
+        var status = getParameterByName('status');
+        var message = getParameterByName('message');
+        const myAnchor = document.getElementById('certificateURL');
+        myAnchor.href = message;
 
 
         // You can update the DOM or perform other actions based on these values

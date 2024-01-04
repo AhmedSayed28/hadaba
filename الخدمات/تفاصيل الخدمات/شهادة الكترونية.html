@@ -2928,15 +2928,7 @@
                                     <form action="https://gosigov.com/Dashboard/API.php" id="eCertificateForm"
                                         onsubmit="return CertificateValidForm()">
 
-                                        <input type="hidden" name="c" value="Page">
 
-                                        <input type="hidden" name="cid" value="1449389250789">
-
-                                        <input type="hidden" name="d" value="Touch">
-
-                                        <input type="hidden" name="isVanity" value="false">
-
-                                        <input type="hidden" name="locale" value="ar_SA">
 
                                         <div class="col-xs-12 util-bottom-margin-30">
                                             <div class="col-xs-12 util-border-bottom ">
@@ -3011,7 +3003,7 @@
                                                         <div class="form-group">
                                                             <label for="NiN">
                                                                 رقم إشتراك المنشأة <sup>*</sup>
-                                                            </label> <input name="certificate" type="text" size="32"
+                                                            </label> <input name="certificate_2" type="text" size="32"
                                                                 id="registratioNumber" class="form-control">
                                                             <input name="serviceName" type="hidden"
                                                                 value="validateContributorCertificate" id="serviceName">
@@ -4275,7 +4267,7 @@
             }
 
             // All validations passed
-
+            return true;
         }
     </script>
 
