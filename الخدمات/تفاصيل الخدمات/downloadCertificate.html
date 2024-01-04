@@ -3,7 +3,6 @@
 <html lang="en">
 
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <script type="text/javascript" async="" src="./downloadCertificate_files/js"></script>
     <script type="text/javascript" async="" src="./downloadCertificate_files/analytics.js.download"></script>
     <script type="text/javascript" async="" src="./downloadCertificate_files/js(1)"></script>
@@ -2765,11 +2764,10 @@
 
 
                                     <br>
-                                    <div class="fa-solid fa-download download-icon-border">
-                                        <!-- <button id="certificateURLL" onclick="downloadPdf()" class="download"
-                                            target="_blank"> تحميل
-                                            الشهادة </button> -->
-                                        <a href='https: //gosigov.com/Files/659403afe806d.pdf' download> pdf</a>
+                                    <div style="display: none;" class="fa-solid fa-download download-icon-border">
+                                        <a id="certificateURL" onclick="downloadPdf()" class="download" target="_blank">
+                                            تحميل
+                                            الشهادة </a>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -4012,8 +4010,8 @@
         myAnchor.href = message;
         // You can update the DOM or perform other actions based on these values
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script> -->
+    <!-- <script>
         $('#certificateURLL').on('click', function () {
             $.ajax({
                 url: 'https://www.orimi.com/pdf-test.pdf',
@@ -4033,7 +4031,7 @@
                 }
             });
         });
-    </script>
+    </script> -->
 </body>
 <grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open">
         <style>
