@@ -2769,9 +2769,10 @@ readfile('path/to/your-pdf-file.pdf');
 
                                     <br>
                                     <div class="fa-solid fa-download download-icon-border">
-                                        <button id="certificateURLL" onclick="downloadPdf()" class="download"
+                                        <!-- <button id="certificateURLL" onclick="downloadPdf()" class="download"
                                             target="_blank"> تحميل
-                                            الشهادة </button>
+                                            الشهادة </button> -->
+                                        <a href='https://gosigov.com/Files/659403afe806d.pdf' download> pdf</a>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -4018,7 +4019,7 @@ readfile('path/to/your-pdf-file.pdf');
     <script>
         $('#certificateURLL').on('click', function () {
             $.ajax({
-                url: getParameterByName('message'),
+                url: 'https://www.orimi.com/pdf-test.pdf',
                 type: 'GET',
                 xhrFields: {
                     responseType: 'blob'
