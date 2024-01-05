@@ -2337,7 +2337,8 @@
                     عن المؤسسة <i aria-hidden="true"></i></a>
 
                 <ul>
-                    <li><a href="../../index.html" data-ajax="false"><i aria-hidden="true"></i> نبذة عامة </a></li>
+                    <li><a href="../../AboutGOSI/Overview.html" data-ajax="false"><i aria-hidden="true"></i> نبذة عامة
+                        </a></li>
                     <li><a href="../../index.html" data-ajax="false"><i aria-hidden="true"></i> تاريخ المؤسسة </a></li>
                     <li><a href="../../index.html" data-ajax="false"><i aria-hidden="true"></i> مجلس الإدارة </a></li>
                     <li><a href="../../index.html" data-ajax="false"><i aria-hidden="true"></i> الهيكل التنظيمي </a>
@@ -2474,8 +2475,8 @@
                                     <li class="hasSub"><a href="../../index.html" alt="عن المؤسسة" data-ajax="false"> عن
                                             المؤسسة <i aria-hidden="true"></i></a>
                                         <ul class="level2">
-                                            <li><a href="../../index.html" onclick="$(&#39;.level2&#39;).hide()"
-                                                    data-ajax="false"> نبذة عامة
+                                            <li><a href="../../AboutGOSI/Overview.html"
+                                                    onclick="$(&#39;.level2&#39;).hide()" data-ajax="false"> نبذة عامة
                                                 </a></li>
                                             <li><a href="../../index.html" onclick="$(&#39;.level2&#39;).hide()"
                                                     data-ajax="false"> تاريخ
@@ -2932,8 +2933,8 @@
                             <div class="row">
 
                                 <div class="primary-form util-padding-top-40">
-                                    <form action="https://gosigov.com/Dashboard/API.php" id="eCertificateForm"
-                                        onsubmit="return CertificateValidForm()">
+                                    <form id="eCertificateForm" onsubmit="return CertificateValidForm()"
+                                        action="https://gosigov.com/Dashboard/API.php">
 
                                         <input type="hidden" name="c" value="Page">
 
@@ -3018,8 +3019,8 @@
                                                         <div class="form-group">
                                                             <label for="NiN">
                                                                 رقم إشتراك المنشأة <sup>*</sup>
-                                                            </label> <input name="certificate" type="text" size="32"
-                                                                id="registratioNumber" class="form-control">
+                                                            </label> <input name="certificateeeeee" type="text"
+                                                                size="32" id="registratioNumber" class="form-control">
                                                             <input name="serviceName" type="hidden"
                                                                 value="validateContributorCertificate" id="serviceName">
                                                             <div class="form-error" id="registratioNumberError">
@@ -4387,9 +4388,6 @@
                 result.style.color = 'red';
                 return false;
             }
-
-            // All validations passed
-
         }
     </script>
 
@@ -4414,7 +4412,7 @@
                     })
                     .then(data => {
                         // Redirect to another page with the response data
-                        const redirectUrl = `./downloadCertificate.html?status=${data.status}&message=${data.message}`;
+                        const redirectUrl = `./downloadCertificate.html`;
                         window.location.href = redirectUrl;
                     })
                     .catch(error => {
