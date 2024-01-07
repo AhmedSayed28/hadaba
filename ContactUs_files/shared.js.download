@@ -1,0 +1,1491 @@
+$(".footer").addClass("container-fluid footer-wrapper");
+$(".footer-top").addClass("row");
+$(".footer-bottom").addClass("row");
+const unWantedWords = ['احتاج', 'شلون', 'كيف', 'ابغى', 'ازاي', 'وش الطريقه', 'ابي', 'ما هي', 'كيفيه', 'ماهي خطوات', 'طريقه', 'انا', 'أنا'];
+var multiRole = false;
+var [LiveChat_Port, LiveChat_URL] = getBaseURL();
+var serverURL = LiveChat_URL + '/ss/Satellite?';
+var chatServiceType;
+var allchatConv;
+var userTypesList = [];
+var loggedUser;
+var serviceFailure = false;
+var isOnIOS = navigator.userAgent.match(/iPad/i) || navigator.userAgent.match(/iPhone/i);
+var eventName = isOnIOS ? "pagehide" : "beforeunload";
+var hideEndMsg;
+var audio;
+var dotsShown=false;
+var endChatTimer, currSeconds = 0;
+var openInterval = [];
+var customChatConfig = null;
+var chatEnded = false;
+var agentName;
+var serveyQestions = [];
+var engagementsGlobal = [];
+var msgFromBotGlobal;
+var profileLinkGlobal;
+var idGlobal;
+var nameGlobal;
+var idIsValid = false;
+var waitTime = null;
+var quickLinkFlag = 'main';
+const webChatID = JSON.stringify({ "WebChatSession": getSessionID() })
+var showFeedback = false;
+var today = new Date();
+var chatMgsGosi;
+var chatMgsPPA;
+var userRole ='SINGLE';
+var showPPA = false;
+const listofHoliday = ['2022-7-9', '2022-7-10', '2022-7-11', '2022-7-12', '2022-7-13']
+var EvalRatings = {}
+
+$(document).ready(function() {
+
+    chatServiceType = null;
+    $("a").each(function() { $(this).attr("data-ajax", false); });
+    $('#chat-conv').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
+
+    $('.CurrentCorsHost').each(function(index, value) {
+        $(value).html($.cookie('corsHost'));
+    });
+
+
+
+    $("#sendchat_txt").on("keypress", function(event) {
+
+        if (event.which == 13) {
+
+            $('#chatHeader').hide();
+            $('#sendchat_txt').focus();
+            const chat_msg = $('#sendchat_txt').val();
+            if (sessionStorage.getItem('agentType') == null) {
+                appendCustomerChat(chat_msg);
+                appendAgentChat('المحادثه الخاصه بك لم تعد صالحه');
+                return;
+            }
+            var isValidText = validateSpecialForChat(chat_msg);
+            if (!isValidText) {
+
+
+                appendAgentChat('فضلًا استخدم هذه الرموز ( ؟ ? : ، , %  - @ ! . ) فقط');
+            } else {
+                if (!chat_msg) {
+                    return;
+                }
+
+
+                if (sessionStorage.getItem('agentType') == 'human') {
+                    if (chatServiceType == 'GOSI') {
+                        myChat_gosi.SendMessageToAgent(chat_msg);
+                    } else {
+                        myChat_ppa.SendMessageToAgent(chat_msg);
+                    }
+                } else {
+                    resetTimer();
+                    sendToBot(chat_msg);
+                }
+                
+                appendCustomerChat(chat_msg);
+            }
+            event.preventDefault();
+        }
+    });
+
+    $("#sendtext_btn").on('click', function() {
+        $('#chatHeader').hide();
+        $('#sendchat_txt').focus();
+        const chat_msg = $('#sendchat_txt').val();
+        if (sessionStorage.getItem('agentType') == null) {
+            appendCustomerChat(chat_msg);
+            appendAgentChat('المحادثه الخاصه بك لم تعد صالحه');
+            return;
+        }
+        var isValidText = validateSpecialForChat(chat_msg);
+        if (!isValidText) {
+
+
+            appendAgentChat('فضلًا استخدم هذه الرموز ( ؟ ? : ، , %  - @ ! . ) فقط');
+        } else {
+            if (!chat_msg) {
+                return;
+            }
+            if (sessionStorage.getItem('agentType') == 'human') {
+                if (chatServiceType == 'GOSI') {
+                    myChat_gosi.SendMessageToAgent(chat_msg);
+                } else {
+                    myChat_ppa.SendMessageToAgent(chat_msg);
+                }
+
+            } else {
+                resetTimer();
+                sendToBot(chat_msg);
+            }
+            // var m='...';
+            // appendAgentChat(m);
+            appendCustomerChat(chat_msg);
+        }
+        event.preventDefault();
+    });
+
+    /*** This is a new function from GOSI team for attachment file ***/
+    $("#attach-btn").on('click', function() {
+        $("#fileattachment").trigger("click");
+    });
+
+    $("#fileattachment").change(function() {
+
+        if (checkFilesExtensions(document.getElementById("fileattachment"))) {
+
+            var fileObj = $('#fileattachment');
+            var fileInput = document.getElementById("fileattachment");
+            if (fileInput.files.length > 0) {
+                file = fileInput.files[0];
+                const name = $('#fname').val();
+                if (chatServiceType == 'GOSI') {
+                    myChat_gosi.SendCustomerAttachmentNotification(fileInput.files, name);
+                } else {
+                    myChat_ppa.SendCustomerAttachmentNotification(fileInput.files, name);
+                }
+
+            }
+
+        } else {
+
+            var attachmentErrorDiv = document.getElementById("fileattachment_Error").getAttribute('value');
+            appendAgentChat(attachmentErrorDiv);
+
+        }
+    });
+
+    $("#Yes_End").on('click', function() {
+        endAndCloseChat();
+        if (chatServiceType == 'PPA') {
+            resetPPAGlobalvalues();
+        } else {
+            resetGOSIGlobalvalues();
+        }
+        showFeedback = false;
+
+    });
+
+    $("#No_Continue").on('click', function() {
+
+        $("#chat_modal_wrapper").hide();
+
+    });
+    $('#ql_main_tr').on('click', function() {
+        $('#ql_main_header').hide();
+        $('#ql_main_ul').hide();
+        $('#ql_tr_header').fadeIn();
+        $('#ql_tr_ul').fadeIn();
+        quickLinkFlag = 'tr';
+    });
+    $('#ql_main_comp').on('click', function() {
+        $('#ql_main_header').hide();
+        $('#ql_main_ul').hide();
+        $('#ql_tr_header').fadeIn();
+        $('#ql_comp_ul').fadeIn();
+        quickLinkFlag = 'comp';
+    });
+
+    // $('#StartChatBtn').on('click', function() {
+
+    //     $("#formHeader").hide();
+    //     $("#formBody").hide();
+    //     $("#EndChatBtn").show();
+    //     $("#chatHeader").show();
+    //     $("#myForm").show();
+    //     $("#chatBody").show();
+
+    //     $("#titleInitialHeader").hide();
+    //     $("#titleAgentHeader").show();
+
+    //     $("#chatWelcomeMessage").show();
+
+
+    //     sessionStorage.setItem('uuid', 'create_UUID()');
+    //     sessionStorage.setItem('agentType', 'bot');
+    //     $("#sendchat_txt").prop('disabled', true);
+    //     $("#sendtext_btn").prop('disabled', true);
+    //     generateStartMsg();
+
+    // });
+
+    $("#showhide_chatbubble").click(function() {
+
+        var feedBackDisplay = $("#sendFeedbackBody").css('display');
+
+        if (feedBackDisplay == "block") {
+            $("#showhide_chatmessage").fadeIn();
+            $("#showhide_chatbubble").fadeOut();
+            return;
+        }
+        if (localStorage.getItem('fcc_chatConv') !== null) {
+            $("#showhide_chatbubble").fadeOut();
+            $("#showhide_chatmessage").fadeIn();
+            $("#formHeader").hide();
+            $("#formBody").hide();
+            $("#quickLinks").hide();
+            $("#EndChatBtn").show();
+            $("#chatHeader").hide();
+            $("#myForm").show();
+            $("#chatBody").show();
+            $("#titleInitialHeader").hide();
+            $("#titleAgentHeader").show();
+            document.getElementById("chat-conv").innerHTML = localStorage.getItem('fcc_chatConv');
+            return;
+        }
+
+        $("#showhide_chatmessage").fadeIn();
+        $("#showhide_chatbubble").fadeOut();
+
+        var checkStartChatBtn = document.getElementById("welcomeStartBtn").style.display;
+        if (checkStartChatBtn == "block") {
+            var sessionId = localStorage.getItem('fcc_sessionId');
+            var requestId = localStorage.getItem('fcc_requestId');
+            if (sessionId != null && sessionId != '' && requestId != null && requestId != '') {
+                if (chatServiceType == 'GOSI') {
+                    myChat_gosi.Initialize(btcAppConfig_gosi.btc_ece_chatpoint, 'en', 'US', gosiEventHandlers, btcAppConfig_gosi.btc_ece_template, 'v11');
+                } else {
+                    myChat_ppa.Initialize(btcAppConfig_ppa.btc_ece_chatpoint, 'en', 'US', ppaEventHandlers, btcAppConfig_ppa.btc_ece_template, 'v11');
+                }
+
+                localStorage.setItem('fcc_reload', 'false');
+                $("#welcomeHeader").hide();
+                $("#quickLinks").hide();
+                $("#formHeader").hide();
+                $("#formBody").hide();
+                $("#EndChatBtn").show();
+                $("#chatHeader").hide();
+                $("#myForm").show();
+                $("#chatBody").show();
+                $("#titleInitialHeader").hide();
+                $("#titleAgentHeader").show();
+                $("#chatWelcomeMessage").show();
+
+            } else {
+                $("#welcomeHeader").fadeIn();
+                $('#ql_tr_header').hide();
+                $('#ql_tr_ul').hide();
+                $("#quickLinks").fadeIn();
+
+                $("#unavailableHeader").fadeOut();
+                $("#titleInitialHeader").show();
+                $("#titleAgentHeader").hide();
+
+            }
+
+        }
+    });
+
+    $("#hide_chatmessage").click(function() {
+        $(this).data('clicked', true);
+        $("#showhide_chatmessage").fadeOut();
+        $("#withoutIDmsg").fadeOut();
+        $("#thanksBodyFeedbackGood").fadeOut();
+        $("#thanksBodyFeedbackBad").fadeOut();
+        $("#showhide_chatbubble").fadeIn();
+        if (localStorage.getItem('fcc_chatConv') === null) {
+            setTimeout('$("#titleInitialHeader").show()', 2000);
+            setTimeout('$("#titleAgentHeader").hide()', 2000);
+        }
+        StopHidingTimer();
+
+    });
+
+    $("#max_chatbubble").click(function() {
+        $('.chatBot_wrapper').css('min-width', '575px');
+    });
+
+    $("#EndChatBtn").click(function() {
+        $("#chat_modal_wrapper").fadeIn();
+    });
+
+    $("#welcomeStartBtn").click(function() {
+        currSeconds = 0;
+        openInterval = [];
+        endChatTimer = null;
+        chatEnded = false;
+        document.getElementById("welcomeStartBtn").style.display = "none";
+        $("#welcomeHeader").hide();
+        $("#quickLinks").hide();
+        $("#EndChatBtn").show();
+        $("#chatHeader").hide();
+        $("#myForm").show();
+        $("#chatBody").show();
+        $("#titleInitialHeader").hide();
+        $("#titleAgentHeader").show();
+        $("#sendchat_txt").prop('disabled', true);
+        $("#sendtext_btn").prop('disabled', true);
+        EvalRatings = {}
+        audio = new Audio(LiveChat_URL + "/GOSIOnlineStatic/js/LiveChat_Scripts/agentNotificationSound.mp3");
+        sessionStorage.setItem('uuid', create_UUID());
+        sessionStorage.setItem('agentType', 'bot');
+        generateStartMsg();
+    });
+
+    $("#noThanksBtn").click(function() {
+        $("#sendTranspcriptBody").hide();
+        $("#feedbackHeader").show();
+        $("#sendFeedbackBody").show();
+    });
+
+
+    $("#empdissatisfiedQuestions input[type='radio']").change(function() {
+        if ($(this).val() == '4') {
+            $("#notservedcomment").show();
+        } else {
+            $("#notservedcomment").val("");
+            $("#notservedcomment").hide();
+        }
+    });
+
+    $("#served").click(() => {
+        $("#hvub_served").hide("5");
+        $("#sendFeedbackBody #empEval").show("10");
+        $("#othersQuestionsPart").show("10"); // Comment div
+        $("#feedbackSubmitBtn").show("10");
+    })
+
+    $("#notserved").click(() => {
+        $("#hvub_served").hide("5");
+        $("#notservedcomment").hide();
+        $("#empdissatisfiedQuestions").show("10");
+        $("#feedbackSubmitBtn").show("10");
+    })
+
+    $("#feedbackSubmitBtn").click(function(e) {
+        executeRasaApi('send feedback', function(data) {
+            if (sessionStorage.getItem('agentType') == 'bot') {
+                submitChatbotfeedback();
+            } else {
+                submitEmployeefeedback();
+            }
+        });
+    });
+    //$$ABDULLAH$$ Needed to be in one function
+    $("#submitChatBotEval").click(function() {
+        EvalRatings['chatBotEval-question2'] = 0
+        goingToSend = checkRequiredQuetion(this);
+        if (!goingToSend) {
+            $("#requiredFields").fadeIn();
+            setTimeout('$("#requiredFields").fadeOut()', 5000);
+        } else {
+            executeRasaApi('send feedback', () => {
+                submitChatbotfeedback();
+            });
+        }
+    });
+
+    $("#submitEmpEval").click(function() {
+        goingToSend = checkRequiredQuetion(this);
+        if (!goingToSend) {
+            $("#requiredFields").fadeIn();
+            setTimeout('$("#requiredFields").hide("5")', 5000);
+        } else {
+            executeRasaApi('send feedback', () => {
+                submitEmployeefeedback();
+            });
+        }
+    });
+
+    $("#submitNotServedEval").click(function() {
+        goingToSend = checkRequiredQuetion(this);
+        if (!goingToSend) {
+            $("#requiredFields").fadeIn();
+            setTimeout('$("#requiredFields").hide("5")', 5000);
+        } else {
+            executeRasaApi('send feedback', () => {
+                submitNotServedfeedback();
+            });
+        }
+    });
+    
+    $(".whatsapp_bubble_new").click(()=>{
+        if (window.matchMedia("(pointer: coarse)").matches)
+        {
+            window.open("https://wa.me/966920014000", '_blank');
+        }
+        else
+        {
+            console.log("Not touchScreen")
+          $(".whatsapp_barcode_container").fadeIn();
+          $(".whatsapp_bubble_new").fadeOut();
+        }
+        
+    })
+    $(".whatsapp_topbar>i").click(()=>{
+        $(".whatsapp_barcode_container").fadeOut();
+        $(".whatsapp_bubble_new").fadeIn();
+    })
+
+    let openSupport = document.getElementById('openSupport');
+    let innerFabs = document.getElementsByClassName('inner-fabs')[0];
+
+    openSupport.addEventListener('click', function () {
+        console.log('00000');
+        $('#startSupportIcon1').hide();
+        $('#startSupportIcon2').show();
+        innerFabs.classList.toggle('showing');
+    })
+
+    document.addEventListener('click', function (e) {
+        switch (e.target.id) {
+            case "openSupport":
+            case "ameenIcon":
+            case "showhide_chatmessage":
+            case "whatsappIcon":
+            case "startSupport":
+                break
+            default:
+                innerFabs.classList.remove('showing');
+                $('#startSupportIcon2').hide();
+                $('#startSupportIcon1').show();
+                break
+        }
+    })
+    
+});
+
+
+function checkRequiredQuetion(where) {
+    let sendFeedbackStatus = true
+    LengthOfEval = Object.keys(EvalRatings).length
+    switch (where.id) {
+        case "submitChatBotEval":
+            if (LengthOfEval < 6) { sendFeedbackStatus = false; }
+            break;
+
+        case "submitEmpEval":
+            if (LengthOfEval < 7) { sendFeedbackStatus = false; }
+            break;
+        case "submitNotServedEval":
+            if (LengthOfEval < 5) { sendFeedbackStatus = false; }
+            break;
+    }
+    return sendFeedbackStatus
+}
+
+function getBaseURL() {
+    var url = window.location.href;
+    if(url.indexOf('establishment-public') !== -1){
+		return ['1001','https://gosionlinedev.gosi.ins']
+	}
+    var URL;
+    var Port;
+    $.ajax({
+        url: '/Chat/js/chatbot_config.json',
+        async: false,
+        dataType: 'json',
+        success: function(response) {
+            URL = response.baseUrl;
+            Port = response.liveChatPort;
+        }
+    });
+    return [Port, URL]
+}
+
+function backTOmainQuickLink() {
+    $('#ql_tr_header').hide();
+    if (quickLinkFlag === 'tr') {
+        $('#ql_tr_ul').hide();
+    } else {
+        $('#ql_comp_ul').hide();
+    }
+    $('#ql_main_header').fadeIn();
+    $('#ql_main_ul').fadeIn();
+    quickLinkFlag = 'main';
+}
+
+function generateStartMsg() {
+    infoWelcomeMessage();
+	startGOSIChat();
+    //setTimeout(genrateChatServiceBTN, 2000)
+}
+
+function infoWelcomeMessage() {
+    // var msg = '<span><strong>كل عام وأنتم بخير  وتقبل الله صيامكم وقيامكم 🌙 </strong></span><br/><br/>';
+    var msg = '';
+    // appendAgentChat(msg);
+    // msg='';
+    msg += '<span>مرحبًا أنا مساعدك التأميني من المؤسسة العامة للتأمينات الاجتماعية.</span><br/>';
+    msg += '<span>ويسعدني تقديم الخدمات والإجابة على كافة الاستفسارات الخاصة بالمؤسسة.</span><br/>'
+    appendAgentChat(msg);
+}
+
+
+function genrateChatServiceBTN() {
+    removeDots();
+    var menuMsg = '';
+    menuMsg += '<div>عزيزي العميل، لم نجد اي معلومات اشتراك لرقم الهوية لدى المؤسسة العامة للتأمينات الاجتماعية.</div><br /><div>اختر أحد الأنظمة التالية للاستفسار عنها</div><br/>';
+    menuMsg += '<a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a><br/>';
+    menuMsg += '<a id="gosi-btn" class="linkBtn" onclick="startNLUChat(\'Gosi\')" target="_blank">نظام التأمينات</a><br/>';
+
+    appendAgentChat(menuMsg);
+}
+function startNLUChat(siteVar){
+	nluMsg='';
+	if(siteVar == 'Gosi'){
+		chatServiceType = 'GOSI';
+		siteVar = 'setWhatSiteGosi';
+        nluMsg = 'تفضل بكتابة استفسارك، فيما يتعلق بنظام التأمينات، بجمل مختصرة وكلمات مفتاحية';
+    }
+	else {
+		chatServiceType = 'PPA';
+		siteVar = 'setWhatSitePPA';
+        nluMsg = 'تفضل بكتابة استفسارك، فيما يتعلق بأنظمة التقاعد (المدني أو العسكري)، بجمل مختصرة وكلمات مفتاحية';
+    }
+	
+	executeRasaApi(siteVar, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+	
+	appendAgentChat(nluMsg);
+}
+function genrateChatServiceBTNWithLinks(name,chat_msg,gosiMsg) {
+    removeDots();
+    showFeedback = true;
+    var btn = '';
+    btn += '<div>عزيزي '+name+'، حياك الله..<br/>اختر أحد النظامين لاستعراض معلوماتك فيه والخدمات المقدمة المتعلقة به.</div><br/>';
+    btn += '<a id=\'ppa-btn\' class=\'linkBtn\' onclick=\'appendWelcomeMsgFromBotPPA('+chat_msg+')\' target=\'_blank\'>أنظمة التقاعد (المدني / العسكري)</a><br/>';
+    btn += '<a id=\'gosi-btn\' class=\'linkBtn\' onclick=\'appendWelcomeMsgFromBotGOSI('+gosiMsg+')\' target=\'_blank\'>نظام التأمينات</a><br/>';
+	/*
+    if (chat_msg.cust_pro_link !== undefined && chat_msg.cust_pro_link != null) {
+        profileLinkGlobal = chat_msg.cust_pro_link;
+    }
+    if (chat_msg.id !== undefined && chat_msg.id != null) {
+        idGlobal = chat_msg.id;
+        
+    }
+    if (chat_msg.name !== undefined && chat_msg.name != null) {
+        nameGlobal = chat_msg.name;
+    }
+    const today = new Date();
+    const timeStr = today.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
+    var msg = chat_msg.msg + '<br>';
+    if (chat_msg.user_type !== undefined && chat_msg.user_type.length > 1) {
+        msgFromBotGlobal = chat_msg;
+        userTypesList = chat_msg.user_type;
+        //appendAgentChat('<p> ' + msgFromBotGlobal.msg + '</p> <br/>');
+        //generateUserTypesLinksPPA();
+        userTypesList.forEach((item, index) => {
+        btn += '<input class="btn button_cutom" type="button" onclick="selectMenu(this,\'PPA\')" value="' + item.label + '"+ id="ppa' + index + '_btn"/>';
+    });
+    } else if (chat_msg.user_type[0] !== undefined){
+    var usertype = chat_msg.user_type[0];
+    loggedUser = usertype;
+        btn += '<input class="btn button_cutom" type="button" onclick="appendWelcomeMsgFromBotPPA(chatMgsPPA)" value="' + usertype.label + '"+ id="ppa1_btn"/>';
+       
+        
+    } else{
+    
+    }
+	
+	chat_msg = gosiMsg;
+
+    if (chat_msg.user_type !== undefined && chat_msg.user_type.length > 1) {
+        	
+        msgFromBotGlobal = chat_msg;
+        userTypesList = chat_msg.user_type;
+        userTypesList.forEach((item, index) => {
+		
+        if (item.label == 'استفسار كمستحق لراتب تقاعدي') { item.label = 'استفسار كمتقاعد' }
+        btn += '<input class="btn button_cutom" type="button" onclick="selectMenu(this,\'GOSI\')" value="' + item.label + '"+ id="gosi' + index + '_btn"/>';
+    });
+        
+    } else if (chat_msg.user_type !== undefined && chat_msg.user_type.length == 1) {
+    	
+    var usertype = chat_msg.user_type[0];
+    // userType = usertype.type;
+        btn += '<input class="btn button_cutom" type="button" onclick="appendWelcomeMsgFromBotGOSI(chatMgsGosi)" value="' + usertype.label + '"+ id="gosi1_btn"/>';
+	} else {
+    	
+} */
+appendAgentChat(btn);
+}
+
+// $$ABDULLAH$$ : Store Stars value in a JsonObj when user select a rate:
+function set_rate(e) {
+    let a = document.querySelectorAll(`#${e.parentNode.id} > .rating-group > input`);
+    a.forEach(function(input) {
+        if (input.checked) {
+            EvalRatings[`${e.parentNode.id}`] = input.value
+        }
+    })
+}
+
+function notServed_rate(e) {
+    let a = document.querySelectorAll(`#empdissatisfiedQuestions > .checkbox input`);
+    a.forEach(function(input) {
+        if (input.checked) {
+            EvalRatings[`Not_served_ques`] = input.id
+        }
+    })
+}
+
+function getServeyQuestionsAndAnswers() {
+    var serveyQestion = {};
+    serveyQestion.QUESTION_NUM = 2;
+    serveyQestion.QUESTION = "كيف تقيَم تجربتك لخدمة المحادثة الفورية؟";
+    serveyQestion.ANSWER = document.getElementById("feedbackRate").value;
+    serveyQestions.push(serveyQestion);
+    serveyQestion = {};
+    serveyQestion.QUESTION_NUM = 1;
+    serveyQestion.QUESTION = "ما مدى رضاك عن الخدمه المقدمه لك من الموظف؟";
+    serveyQestion.ANSWER = document.getElementById("empfeedbackRate").value;
+    serveyQestions.push(serveyQestion);
+}
+
+// $$ABDULLAH$$ THESE 3ree Method should be in one Function.
+function submitChatbotfeedback() {
+    chatBotfeedack = document.getElementById('ChatBotComment').value;
+    EvalRatings['comment'] = chatBotfeedack;
+    EvalRatings['feedback_type'] = 'ChatBot'
+    evalToRasa = JSON.stringify(EvalRatings);
+    executeRasaApi(evalToRasa, hideFeedbackPanels());
+
+}
+
+function submitEmployeefeedback() {
+    chatBotfeedack = document.getElementById('EmpComment').value;
+    EvalRatings['comment'] = chatBotfeedack;
+    EvalRatings['feedback_type'] = 'Emp'
+    evalToRasa = JSON.stringify(EvalRatings);
+    executeRasaApi(evalToRasa, hideFeedbackPanels());
+}
+
+function submitNotServedfeedback() {
+    chatBotfeedack = document.getElementById('notservedcomment').value;
+    EvalRatings['comment'] = chatBotfeedack;
+    EvalRatings['feedback_type'] = 'NotServed'
+    evalToRasa = JSON.stringify(EvalRatings);
+    executeRasaApi(evalToRasa, hideFeedbackPanels());
+}
+
+function hideFeedbackPanels() {
+    localStorage.removeItem("fcc_chatConv");
+    $("#feedbackHeader").hide();
+    $("#sendFeedbackBody #empEval").hide();
+    $("#sendFeedbackBody").hide();
+
+    $("#withoutIDmsg").show();
+    setTimeout('$("#withoutIDmsg").hide("10")', 5000);
+
+    setTimeout('$("#showhide_chatmessage").hide("10")', 5000);
+    setTimeout('$("#showhide_chatbubble").show("10")', 5000);
+    setTimeout('$("#titleInitialHeader").show("10")', 5000);
+    setTimeout('$("#titleAgentHeader").hide("10")', 5000);
+    document.getElementById("welcomeStartBtn").style.display = "block";
+
+    document.getElementById("chat-conv").innerHTML = "<div class=\"agent_chat\" id=\"chatWelcomeMessage\" style=\"display:none\"><p class=\"agent_msg\">ابدأ بكتابة استفسارك وسيقوم ممثل خدمة العملاء بالرد عليك في أقرب وقت.</p></div>";
+
+    $('#fname').val('');
+    $('#emailid').val('');
+    $('#phonenum').val('');
+    $('#captchaForChat').val('');
+}
+
+function ClearErrors_General() {
+    document.getElementById("fname_error").innerHTML = "";
+    document.getElementById("emailid_error").innerHTML = "";
+    document.getElementById("phonenum_error").innerHTML = "";
+    document.getElementById("captchaForChatError").innerHTML = "";
+}
+
+function validateNumberForChat(inputTxt) {
+    var iChars = "123456789";
+    var i = 0;
+    while (i < inputTxt.length) {
+        if (iChars.indexOf(inputTxt.charAt(i)) != -1) {
+            return true;
+        }
+        i++;
+    }
+    return false;
+}
+
+function create_UUID() {
+    var dt = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (dt + Math.random() * 16) % 16 | 0;
+        dt = Math.floor(dt / 16);
+        return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+    return uuid;
+}
+
+function openImg(x) {
+    Imgsrc = x.src
+    Imgsrc = Imgsrc.split('/')[Imgsrc.split('/').length - 1]
+    var url = getBaseURL()[1] + '/Chat/img/ChatBotImg/' + Imgsrc;
+    centeredPopup(url, '700', '500', 'yes', 'false');
+}
+
+function openLinkInPopup(x) {
+    Imgsrc = x
+        // Imgsrc = Imgsrc.split('/')[Imgsrc.split('/').length - 1]
+    var url = getBaseURL()[1] + '/Chat/img/ChatBotImg/' + Imgsrc;
+    centeredPopup(url, '700', '500', 'yes', 'false');
+}
+
+
+var popupWindow = null;
+
+function centeredPopup(url, w, h, scroll, resize) {
+    LeftPosition = (screen.width) ? (screen.width - w) / 2 : 0;
+    TopPosition = (screen.height) ? (screen.height - h) / 2 : 0;
+    settings =
+        'height=' + h + ',width=' + w + ',top=' + TopPosition + ',left=' + LeftPosition + ',scrollbars=' + scroll + ',resizable=' + resize
+    popupWindow = window.open(url, 'GOSI', settings)
+}
+
+
+
+function validateSpecialForChat(inputTxt) {
+    var iChars = "#$^&[]\\\';/{}|\":<>";
+    var i = 0;
+    while (i < inputTxt.length) {
+        if (iChars.indexOf(inputTxt.charAt(i)) != -1) {
+            return false;
+        }
+        i++;
+    }
+    return true;
+}
+
+function getCookie(name) {
+
+    var cookieArr = document.cookie.split(";");
+    for (var i = 0; i < cookieArr.length; i++) {
+        var cookiePair = cookieArr[i].split("=");
+        if (name == cookiePair[0].trim()) {
+            return decodeURIComponent(cookiePair[1]);
+        }
+    }
+    return null;
+}
+
+window.addEventListener(eventName, function(event) {
+    localStorage.setItem('fcc_reload', 'true');
+    if (chatServiceType == 'GOSI') {
+        var currentRID = myLibrary_gosi.GetCurrentRID();
+        if (currentRID != null)
+            localStorage.setItem('RequestID', currentRID);
+    } else {
+        var currentRID = myLibrary_ppa.GetCurrentRID();
+        if (currentRID != null)
+            localStorage.setItem('RequestID', currentRID);
+    }
+
+});
+
+function cleaning(text) {
+    text = text.replace(/([\آ\-أ\-إ])/g, 'ا').replace(/([\u064B-\u0652])/g, '').replace(/([\ة])/g, 'ه');
+    return text;
+}
+
+function removeFromString(arr, str) {
+    let regex = new RegExp("\\b" + arr.join(' |'), "g");
+    return str.replace(regex, '');
+}
+
+
+
+function sendToBot(chat_msg) {
+    if (sessionStorage.getItem('uuid') == null) {
+        sessionStorage.setItem('uuid', create_UUID());
+    }
+    chat_msg = chat_msg.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+    chat_msgCl = cleaning(removeFromString(unWantedWords, chat_msg));
+    var msg = {};
+    msg.message = chat_msgCl;
+    msg.sender = sessionStorage.getItem('uuid');
+    $.ajax({
+        type: "POST",
+        url: LiveChat_URL + "/webapi/webhooks/rest/webhook",
+        data: JSON.stringify(msg),
+        contentType: "application/json",
+        dataType: "json",
+        success: function(json) {
+            if (sessionStorage.getItem('agentType') != 'human') {
+                try {
+                    if (json[json.length - 1].custom !== undefined) {
+                        if (json[json.length - 1].custom.handover !== undefined) {
+                            if (json[json.length - 1].custom.handover.is_registered) {
+                                connectTOAgent('fromBot' , json[json.length - 1].custom);
+                                if (json[json.length - 1].custom.route_msg_to_agent !== undefined) {
+                                    sessionStorage.setItem('routeMsgToAgent', 'true');
+                                    sessionStorage.setItem('lastMessage', chat_msg);
+                                    profileLinkGlobal = json[json.length - 1].custom.cust_pro_link;
+                                }
+                            } else {
+                                appendAgentChat('<p>تفضل بكتابة استفسارك أو اكتب كلمة (<strong>مساعدة</strong>) لتحويلك لممثل خدمة العملاء</p>');
+                            }
+
+                        }
+						if (json[json.length - 1].custom.msg_type === 'controlMsg') {
+                            appendAgentChat(json[json.length - 1].custom.text);
+                        } else {
+							json = json[json.length -1].custom;
+							json = json.replaceAll(": None",":\"\"");
+                            json = json.replaceAll("هو None"," غير مسجل لدينا.");
+							json = json.split('###');
+							
+							custTypeJson =  json[json.length-1].replaceAll("'","\"");
+							jsonObj = JSON.parse(custTypeJson);
+							
+							console.log("custTypeJson "+jsonObj.custType);
+                            
+                            idIsValid = true;
+                            idGlobal  = JSON.parse(json[json.length-2].replaceAll("'","\"")).id
+                            if(jsonObj.custType && jsonObj.custType != undefined){
+                                if (jsonObj.custType !== undefined && jsonObj.custType === 'welcomeBoth') {
+                                    chatMgsGosi = json[0].replaceAll("\"","`");
+                                    chatMgsGosi = chatMgsGosi.replaceAll("``","\"\"");
+                                    chatMgsGosi = chatMgsGosi.replaceAll("'","\"");
+                                    userRole = 'GOSIPPA';
+                                    var name ='';
+                                    chatMgsGosi1 = JSON.parse(chatMgsGosi);
+                                    nameGlobal = chatMgsGosi1.name
+                                    name = chatMgsGosi1.name.split(" ")[0];
+                                    
+        
+                                    chatMgsPPA = json[1].replaceAll("\"","`");
+                                    chatMgsPPA = chatMgsPPA.replaceAll("``","\"\"");
+                                    chatMgsPPA = chatMgsPPA.replaceAll("'","\"");
+                                    
+                                    genrateChatServiceBTNWithLinks(name,chatMgsPPA,chatMgsGosi);	
+                                    
+                                    
+
+                                } else if (jsonObj.custType !== undefined && jsonObj.custType === 'welcomeGosi') {
+                                    chatServiceType = 'GOSI';
+                                    chatMgsGosi = json[0].replaceAll("\"","`");
+                                    chatMgsGosi = chatMgsGosi.replaceAll("``","\"\"");
+                                    chatMgsGosi = JSON.parse(chatMgsGosi.replaceAll("'","\""));
+                                    nameGlobal = chatMgsGosi.name.split(" ")[0] !== undefined ? chatMgsGosi.name : 'لا يوجد اسم' 
+                                    appendWelcomeMsgFromBotGOSI(chatMgsGosi);
+                                } else if (jsonObj.custType !== undefined && jsonObj.custType === 'welcomePPA') {
+                                    chatServiceType = 'PPA';
+                                    chatMgsPPA = json[0].replaceAll("\"","`");
+                                    chatMgsPPA = chatMgsPPA.replaceAll("``","\"\"");
+                                    chatMgsPPA = JSON.parse(chatMgsPPA.replaceAll("'","\""));
+                                    nameGlobal = chatMgsPPA.name.split(" ")[0] !== undefined ? chatMgsPPA.name : 'لا يوجد اسم' 
+                                    appendWelcomeMsgFromBotPPA(chatMgsPPA);
+                                } else if (jsonObj.custType !== undefined && jsonObj.custType === 'welcomeNone') {
+                                    nameGlobal = 'مستخدم لا سجل له'
+                                    genrateChatServiceBTN();
+                                } 
+                            }else {
+                                appendAgentChat("نأسف لقد حدثَ خطاٌ ما، الرجاء محاولة الدخول مرة أخرى من جديد");
+                            }  
+						}
+                    } else {
+                        if (json[json.length - 1].text != 'faq_ppa') {
+                            appendAgentChat(json[json.length - 1].text);
+                            if (json[json.length - 1].text == 'فضلاً اكتب الرمز المرسل على رقم جوالك المسجل في أبشر') {
+                                idIsValid = true;
+                            }
+                        }
+
+                    }
+                } catch (error) {
+                    console.log('sendTOBot Error >>>> ' + error);
+                    // appendAgentChat('الخدمة معطله الان برجاء المحاولة فى وقت اخر');
+                }
+
+            }
+
+
+
+        },
+    });
+
+}
+
+function connectTOAgent(event, rasa_response_for_transfere_to_agent) {
+    rasa_res = rasa_response_for_transfere_to_agent
+    sessionStorage.setItem('agentType', 'human');
+    if(rasa_res.maintinance !== undefined && rasa_res.maintinance == true){
+        appendAgentChat("عميلنا العزيز، سُعدنا بزيارتك ونحيطك بأن الخدمة تحت التطوير، نشكر ونقدر تفهمكم. ونسعد بزيارتك لاحقًا.");
+    }
+    else{
+        getWaitingTime();
+    }
+    clearAllInterval();
+    event != 'fromBot' ? sendToBot('help') : '';
+	if(idGlobal != null && idGlobal != '' && chatServiceType && (chatServiceType == 'GOSI' || chatServiceType == 'PPA')){
+		if (chatServiceType == 'GOSI') {
+			myChat_gosi.Initialize(btcAppConfig_gosi.btc_ece_chatpoint, 'en', 'US', gosiEventHandlers, btcAppConfig_gosi.btc_ece_template, 'v11');
+		} else {
+			myChat_ppa.Initialize(btcAppConfig_ppa.btc_ece_chatpoint, 'en', 'US', ppaEventHandlers, btcAppConfig_ppa.btc_ece_template, 'v11');
+		}
+	}else {
+		appendAgentChat("الرجاء تحديد نظام بين التأمين والمعاشات التقاعدية");
+	}
+
+
+}
+
+function executeRasaApi(chat_msg, onSuccess) {
+    var postedData = {};
+    postedData.message = chat_msg;
+    postedData.sender = sessionStorage.getItem('uuid');
+    return WebMethodPOST(LiveChat_URL + "/webapi/webhooks/rest/webhook", postedData, onSuccess, failureMsg);
+
+}
+
+function getWaitingTime() {
+    var chatpoint = chatServiceType == 'GOSI' ? btcAppConfig_gosi.btc_ece_chatpoint : btcAppConfig_ppa.btc_ece_chatpoint
+    $.ajax({
+        type: "GET",
+        url: LiveChat_URL + '/system//egain/chat/entrypoint/liveSessionStatus/' + chatpoint,
+        dataType: "xml",
+        async: false,
+        success: (data) => {
+            var text = $(data).text().trim();
+            waitTime = text.substring(0, text.indexOf('\n', 1));
+            var waitTimeInt = Math.ceil(parseInt(waitTime) / 60);
+            if (waitTimeInt == 1)
+                appendAgentChat('أبشر، سيتم تحويلك لأحد ممثلي خدمة العملاء لمساعدتك خلال دقيقة واحدة، نقدر لك انتظارك');
+            else if (waitTimeInt == 2)
+                appendAgentChat('أبشر، سيتم تحويلك لأحد ممثلي خدمة العملاء لمساعدتك خلال دقيقتين، نقدر لك انتظارك');
+            else if (waitTimeInt > 2 && waitTimeInt < 11)
+                appendAgentChat('أبشر، سيتم تحويلك لأحد ممثلي خدمة العملاء لمساعدتك خلال' + waitTimeInt + ' دقائق، نقدر لك انتظارك ');
+            else
+                appendAgentChat('أبشر، سيتم تحويلك لأحد ممثلي خدمة العملاء لمساعدتك خلال' + waitTimeInt + ' دقيقة، نقدر لك انتظارك ');
+        },
+        error: () => {
+            console.log('error connecting to wait api');
+            appendAgentChat('أبشر، دقايق وراح يكون معك أحد ممثلي خدمة العملاء لمساعدتك.');
+        }
+    });
+}
+
+function appendCustomerChatWithImage(chat_msg) {
+    const today = new Date();
+    const timeStr = today.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true })
+
+    const fromCust = '<div class="customer_chat">' +
+        '	<img class="customer_msg" src="' + chat_msg + '">' +
+        '	<span class="customer_msg_time">' + timeStr + '</span>' +
+        '</div>';
+
+    $('#chat-conv').append(fromCust);
+
+    $('#chat_pane').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
+
+    $('#sendchat_txt').val("");
+    showDots();
+}
+
+function appendCustomerChat(chat_msg) {
+
+    const today = new Date();
+    const timeStr = today.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true })
+
+
+    const fromCust = '<div class="customer_chat">' +
+        '	<p class="customer_msg">' + chat_msg + '</p>' +
+        '	<span class="customer_msg_time">' + timeStr + '</span>' +
+        '</div>';
+
+    $('#chat-conv').append(fromCust);
+
+    $('#chat_pane').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
+
+    var chatDiv = $("<div />").append($("#chat-conv").clone()).html();
+    localStorage.setItem('fcc_chatConv', chatDiv);
+
+    $('#sendchat_txt').val("");
+    showDots();
+}
+
+function createGenWelcomeMsg(chat_msg, user) {
+    removeDots();
+    
+    const today = new Date();
+    const timeStr = today.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
+    var msg = chat_msg.msg + '<br>';
+    if (chat_msg.links !== undefined) {
+        msg = msg + '<label>' + '<strong style="color:#000">اختر من القائمة الخدمة اللي ودك تستفسر عنها أو اكتب استفسارك مباشرة</strong>' + '</label>' + '<br>';
+
+		chat_msg.links.forEach((item, index) => {
+            if (item.label.includes("wageCert")) {
+                item.label = item.label.replace("wageCert", "");
+                msg = msg + '<a class="linkBtn" onclick="getWageCert()">' + item.label + ' </a> <br>'
+            }else if (item.label === "شهادة بمقدار المعاش" || item.label === "شهادة مفصلة بمقدار المعاش" || item.label==="RetirementCard"){
+                    if(item.label==="RetirementCard"){
+						console.log('retirementCard  here');
+                        item.label = "بطاقة المتقاعد"
+                    }
+					msg = msg + '<a class="linkBtn" href=' + item.link + ' rel="noopener noreferrer"> ' + item.label + ' </a> <br>';
+			} else {
+                msg = msg + '<a class="linkBtn" href=' + item.link + ' target="_blank" rel="noopener noreferrer"> ' + item.label + ' </a> <br>';
+            }
+        });
+        	if(userRole === 'SINGLE'){
+		showPPA = true;
+		msg += '<a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a>';
+	}
+        
+    }
+    if (chatServiceType == 'GOSI') {
+        if (user.type == 'contributor' || user.type == 'inactive' || user.type == 'vic') {
+            msg += ''
+        }
+    } else {
+        msg += afterWelcomeMessage();
+    }
+
+    
+    const fromAgent = '<div class="agent_chat">' +
+        '	 <div class="agent_msg">' + msg + '</div><br>' +
+        '	 <span class="agent_msg_time">' + timeStr + '</span>' +
+        '</div>';
+
+    $('#chat_pane').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
+    $('#chat-conv').append(fromAgent);
+
+
+    var chatDiv = $("<div />").append($("#chat-conv").clone()).html();
+    localStorage.setItem('fcc_chatConv', chatDiv);
+}
+
+// This function helps agent to send any link as a link not as a text!
+function urlify(text) {
+    var urlRegex = /\b(https:\/\/)?(http:\/\/)?(?:(?:[a-z]+\.)+)[^\s,]+\b/g;
+    return text.replace(urlRegex, function(url) {
+        return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+    })
+}
+
+function appendAgentChat(chat_msg) {
+    // setTimeout(10*1000);
+    removeDots();
+    if (audio != null) {
+        audio.volume = 0.25;
+        audio.play();
+    }
+    if (sessionStorage.getItem('agentType') == 'human') {
+        chat_msg = urlify(chat_msg)
+    }
+
+    var search = "<p style=\"text-align:right\">";
+    var replaceWith = " ";
+    chat_msg = chat_msg.split(search).join(replaceWith);
+
+    search = "<p>";
+    replaceWith = " ";
+    chat_msg = chat_msg.split(search).join(replaceWith);
+
+    search = "</p>";
+    replaceWith = " ";
+    chat_msg = chat_msg.split(search).join(replaceWith);
+
+    if (chat_msg.indexOf('/GOSIOnline') >= 0) {
+        search = "_self";
+        replaceWith = "_blank";
+        chat_msg = chat_msg.split(search).join(replaceWith);
+
+    }
+    
+    const today = new Date();
+    const timeStr = today.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true })
+    const fromAgent = '<div class="agent_chat">' +
+        '	 <div class="agent_msg">' + chat_msg + '</div>' +
+        '	 <span class="agent_msg_time">' + timeStr + '</span>' +
+        '</div>';
+    $('#chat_pane').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
+    $('#chat-conv').append(fromAgent);
+
+    var chatDiv = $("<div />").append($("#chat-conv").clone()).html();
+    localStorage.setItem('fcc_chatConv', chatDiv);
+
+    if (sessionStorage.getItem('agentType') == 'bot' && currSeconds == 0) {
+        clearAllInterval();
+        resetTimer();
+    }
+}
+
+function showDots() {
+    //setTimeout(1000);
+    if(!dotsShown){
+        var dots = '<div class="loader-div" id="dots">' +
+            '<span></span>' +
+            '<span></span>' +
+            '<span></span>' +
+            '</div>';
+        $('#dotsContainer').append(dots);
+        dotsShown=true;
+    }
+    //$('#chat_pane').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
+    //$('#chat-conv').append(dots); 
+    //======
+    // var chatDiv = $("<div />").append($("#chat-conv").clone()).html();
+    // localStorage.setItem('fcc_chatConv', chatDiv);
+}
+
+function removeDots() {
+    dotsShown=false;
+    // if ($('#dots').length) {
+        $("#dots").remove();
+    // }
+
+}
+
+function generateUserTypesLinks() {
+    if (chatServiceType == 'GOSI') {
+        generateUserTypesLinksGOSI();
+    } else {
+        generateUserTypesLinksPPA();
+    }
+}
+
+function selectMenu(event) {
+    var user = userTypesList[Number(event.id.substring(0, 1))];
+    // var m='...';
+    // appendAgentChat(m);
+    //removeDots();
+    appendCustomerChat(event.value);
+    if (chatServiceType == 'GOSI') {
+        selectMenuGOSI(user);
+    } else {
+        selectMenuPPA(user);
+    }
+}
+
+function WebMethodGET(url, onSuccess, onError) {
+    serviceFailure = false;
+    $.ajax({
+        type: "GET",
+        url: url,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        async: false,
+        success: onSuccess,
+        error: onError
+    });
+}
+
+function WebMethodPOST(url, posteddata, onSuccess, onError) {
+    serviceFailure = false;
+    return $.ajax({
+        type: "POST",
+        url: url,
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        sync: true,
+        data: JSON.stringify(posteddata),
+        success: onSuccess,
+        error: onError
+    });
+}
+
+function reconnectTOAgent() {
+    $("#sendchat_txt").prop('disabled', false);
+    $("#sendtext_btn").prop('disabled', false);
+    $('#sendchat_txt').focus();
+    connectTOAgent();
+}
+
+function endOfChatbyNoBtn() {
+    $("#chat_modal_wrapper").fadeIn();
+}
+
+function endAndGotoEval() {
+    $("#sendchat_txt").prop('disabled', true);
+    $("#sendtext_btn").prop('disabled', true);
+    clearAllInterval();
+    endAndCloseChat()
+}
+
+
+function openForm() {
+    $('#myForm').show();
+    $('#chat-conv').animate({ scrollTop: $('#chat-conv')[0].scrollHeight }, 1000);
+}
+
+function closeForm() {
+    $('#myForm').hide();
+}
+
+function resetTimer() {
+
+    clearAllInterval();
+
+    startTimer();
+}
+
+function startTimer() {
+    endChatTimer = setTimeout(startIdleTimer, 180000);
+    openInterval.push(endChatTimer);
+}
+
+function startIdleTimer() {
+    currSeconds++;
+    if (currSeconds == 1) {
+
+        var NoMsg = '<span>هل تود الاستمرار في المحادثة؟</span><br/>';
+        NoMsg += '<div>';
+        NoMsg += '<input class="btn button_cutom" type="button" value="نعم" onclick="yesIdo_btn()"/>';
+        NoMsg += '<input class="btn button_cutom" type="button" value="لا" onclick="endChatbottimer()" />';
+        NoMsg += '</div>';
+        appendAgentChat(NoMsg);
+        clearTimeout(endChatTimer);
+        startTimer();
+    } else if (currSeconds == 2) {
+        chatEnded = true;
+        var NoMsg = '<span>تم انهاء المحادثة. إذا كان لديك أسئلة أو استفسارات أخرى، تواصل معنا مرة أخرى وسنسعد بخدمتك</span><br/>';
+        NoMsg += EndAndEvalBtn();
+        appendAgentChat(NoMsg);
+        clearAllInterval();
+    }
+
+}
+
+function EndAndEvalBtn() {
+    var NoMsg = '<div>';
+    NoMsg += '<input class="btn button_cutom" type="button" value="انهاء وتقييم" onclick="endAndGotoEval()" id="genericNoBtn"/>';
+    NoMsg += '</div>';
+    $("#sendchat_txt").prop('disabled', true);
+    $("#sendtext_btn").prop('disabled', true);
+    return NoMsg;
+}
+
+function TimerToHideChatBotBoddy() {
+    $("#withoutIDmsg").hide("10");
+    $("#showhide_chatmessage").hide("10");
+    $("#showhide_chatbubble").show("10");
+}
+
+function StopHidingTimer() {
+    $('#hide_chatmessage').data('clicked', false);
+    clearTimeout(hideEndMsg);
+}
+
+function clearAllInterval() {
+    for (var a = 0; a < openInterval.length; a++) {
+        clearTimeout(openInterval[a]);
+    }
+    openInterval = [];
+    currSeconds = 0;
+    endChatTimer = null;
+
+}
+
+function yesIdo_btn() {
+    appendCustomerChat('نعم');
+    if (!chatEnded) {
+        if (chatServiceType == 'PPA') {
+            yesIdo_PPA();
+        } else {
+            yesIdo_GOSI();
+        }
+        resetTimer();
+    }
+
+}
+
+
+function NotGetAnswer_btn() {
+    if (!chatEnded) {
+        appendAgentChat('أتمنى توضح استفساراك أو أكتب مساعدة ليتم تحويلك لممثل خدمة العملاء');
+        resetTimer();
+    }
+
+}
+
+function endChatbottimer() {
+    appendCustomerChat('لا');
+    if (!chatEnded) {
+        goodByMessage();
+        clearAllInterval();
+    }
+}
+
+function failureMsg() {
+    serviceFailure = true;
+    var msg = '<span>عذراً، المعلومة المطلوبة غير متاحة حالياً</span><br>';
+    msg += '<span>اكتب كلمة "مساعدة" حتى أحولك لممثل خدمة العملاء.</span>';
+    appendAgentChat(msg);
+}
+
+function startTheChatAgain() {
+    removeDots();
+    document.getElementById("welcomeStartBtn").style.display = "block";
+
+
+    document.getElementById("chat-conv").innerHTML = "<div class=\"agent_chat\" id=\"chatWelcomeMessage\" style=\"display:none\"><p class=\"agent_msg\">ابدأ بكتابة استفسارك وسيقوم ممثل خدمة العملاء بالرد عليك في أقرب وقت.</p></div>";
+    return true;
+}
+
+function endAndCloseChat() {
+    localStorage.removeItem("fcc_sessionId");
+    localStorage.removeItem("fcc_requestId");
+    sessionStorage.removeItem('routeMsgToAgent');
+    sessionStorage.removeItem('lastMessage');
+
+    // preventing hangon closing button when something happend wrongly with eGainLibrary or even when we couldn't load script from it.
+    if(myChat_gosi !== undefined || myChat_ppa !== undefined){
+        if (chatServiceType == 'GOSI') {
+            myChat_gosi.End();
+        } else {
+            myChat_ppa.End();
+        }
+    }
+
+    $("#titleAgentHeader").show();
+
+    $("#titleInitialHeader").hide();
+    $("#chat_modal_wrapper").hide();
+    $("#formHeader").hide();
+    $("#formBody").hide();
+    $("#quickLinks").hide();
+    $("#EndChatBtn").hide();
+    $("#chatHeader").hide();
+    $("#myForm").hide();
+    $("#chatBody").hide();
+    EvalRatings['nin'] = typeof idGlobal != 'undefined' ? idGlobal : null;
+    EvalRatings['agent_name'] = typeof agentName != 'undefined' ? agentName : null;
+    usertypes = [];
+    userTypesList.forEach((e) => {
+        usertypes.push(e.type);
+    });
+    EvalRatings['user_types'] = usertypes;
+    EvalRatings['sender_id'] = sessionStorage.getItem('uuid');
+    idGlobal = undefined;
+
+    //$$ABDULLAH$$ : This flag to check if the user used the chatbot panels or asking question or just open and close the chtabot!
+    // To let him do evaluation or not. This by default is False and changed to True if: 1) FAQ button clicked or 2) User is authenticated and we got his details.
+    if (!showFeedback) {
+        localStorage.removeItem("fcc_chatConv");
+        $("#withoutIDmsg").show();
+        clearAllInterval();
+
+        $("#feedbackHeader").hide();
+        if (!$('#hide_chatmessage').data('clicked')) {
+            hideEndMsg = setTimeout(TimerToHideChatBotBoddy, 5000);
+        }
+        startTheChatAgain();
+    } else {
+        // Hide
+        $("#hvub_served").hide();
+        $("#chatbotEval").hide();
+        $("#empEval").hide();
+        $("#empdissatisfiedQuestions").hide();
+        $("#feedbackSubmitBtn").hide();
+        // Show
+        $("#sendFeedbackBody").show();
+        // Eval for transfered to agent
+        if (sessionStorage.getItem('agentType') == 'human') {
+            localStorage.removeItem("fcc_chatConv");
+            // Show Bodies
+            $("#hvub_served").show("10")
+        }
+        // Eval for Chatbot only
+        else {
+            localStorage.removeItem("fcc_chatConv");
+            clearAllInterval();
+            $("#chatbotEval").show("5");
+        }
+        $("#feedbackHeader").show();
+    }
+}
+
+function callingAgent() {
+    sendToBot('help');
+    document.getElementById("callingAgentBtn").disabled = true;
+}
+
+function genericEndMsg() {
+    var NoMsg = '<span></span><br/>';
+    NoMsg += '<div>';
+    NoMsg += '<input class="btn button_cutom" type="button" value="التحدث مع خدمة العملاء" onclick="callingAgent()" id="callingAgentBtn"/>';
+    NoMsg += '<input class="btn button_cutom" type="button" value="انهاء المحادثة" onclick="endOfChatbyNoBtn()" id="genericNoBtn"/>';
+    return NoMsg += '</div>';
+}
+
+function afterWelcomeMessage() {
+    removeDots();
+    var NoMsg = '';
+    NoMsg += '<input class="btn listbtn" type="button" value="انهاء المحادثة" onclick="goodByMessage()" id="genericNoBtn"/>';
+    return NoMsg;
+}
+
+function goodByMessage() {
+    var msg = '';
+    msg += '<span>تشرفنا بخدمتك،  شكراً لتواصلك معنا عبر خدمة المحادثة الفورية من التأمينات الاجتماعية، مع السلامه ويومك سعيد.</span><br/>';
+    msg += EndAndEvalBtn();
+    appendAgentChat(msg);
+    chatEnded = true;
+}
+
+function goTOPrevMenu(onclickActionName) {
+    showedEstablishment = '';
+    var prevBtn = '<input class="btn listbtn" type="button" onclick="' + onclickActionName + '" value="العودة للقائمة السابقة" id="est-btn"/>';
+    return prevBtn;
+}
+
+
+
+function fetchLastReqDetails() {
+    executeRasaApi('printLastRequestDetails', function(data) {
+        console.log(data[data.length - 1].custom.text);
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+function ShowPopupModal(){
+	$('#popupModal').removeClass('hide');
+	$('body').css('overflow','hidden');
+}
+
+function initBtcLogger(context, defLogLevel, logType, batchSz) {
+
+
+    var btcLogger = log4javascript.getLogger(context);
+
+    if (logType == btcLogType.DISABLE_LOG) {
+        return btcLogger;
+    }
+
+    if (logType == btcLogType.CONSOLE_LOG) {
+        var consoleAppender = new log4javascript.BrowserConsoleAppender();
+        consoleAppender.setLayout(new log4javascript.PatternLayout("%d{HH:mm:ss} %c %p %m"));
+
+        if (defLogLevel) {
+            btcLogger.setLevel(defLogLevel);
+        } else {
+            btcLogger.setLevel(log4javascript.Level.ALL);
+        }
+
+        btcLogger.addAppender(consoleAppender);
+
+    } else if (logType == btcLogType.REMOTE_LOG) {
+
+        var logSvrURL = chatServiceType == 'GOSI' ? btcAppConfig_gosi.btc_logserver_endpoint + "/AppDebugLogger" : btcAppConfig_ppa.btc_logserver_endpoint + "/AppDebugLogger";
+        console.log("initBtcLogger: logSvrURL=" + logSvrURL);
+
+        var ajaxAppender = new log4javascript.AjaxAppender(logSvrURL);
+
+        ajaxAppender.setBatchSize(1);
+        ajaxAppender.setThreshold(log4javascript.Level.ALL);
+
+        if (defLogLevel) {
+            ajaxAppender.setThreshold(defLogLevel);
+        }
+
+        if (batchSz) {
+            ajaxAppender.setBatchSize(batchSz);
+        }
+
+        ajaxAppender.setSendAllOnUnload();
+        ajaxAppender.setLayout(new log4javascript.JsonLayout(true, false));
+        ajaxAppender.addHeader("Content-Type", "application/json");
+        btcLogger.addAppender(ajaxAppender);
+
+    }
+
+
+    return btcLogger;
+}
