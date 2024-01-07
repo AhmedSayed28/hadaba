@@ -1,0 +1,1059 @@
+const empsurvey = 'https://fccintwvd01.gosi.ins/submitChatSurvey';
+const GOSI_URL_SITE = LiveChat_URL + '/GOSIOnline/';
+const GOSI_API_URL = LiveChat_URL + '/webapi/server/customer360/';
+const Establishment_Online_registration = GOSI_URL_SITE + 'Establishment_Online_Registration';
+const ContactUs_Request = GOSI_URL_SITE + 'ContactUs_Request';
+const ContactUs = GOSI_URL_SITE + 'Contact_US';
+const Forms = GOSI_URL_SITE + 'Forms';
+const Establishment_registration = GOSI_URL_SITE + 'Establishment_registration';
+const File_a_Complaint = GOSI_URL_SITE + 'File_a_Complaint';
+const Change_Supervisor = GOSI_URL_SITE + 'Change_Supervisor';
+const infochange = GOSI_URL_SITE + 'infochange';
+const AnnualwageupdateArabic = GOSI_URL_SITE + 'AnnualwageupdateArabic';
+const MonthlywagesArabic = GOSI_URL_SITE + 'MonthlywagesArabic';
+const Track_Transaction_for_Establishment = GOSI_URL_SITE + 'Track_Transaction_for_Establishment';
+const onlineregistrationEstablishment = GOSI_URL_SITE + 'onlineregistrationEstablishment';
+const contributorlist = GOSI_URL_SITE + 'contributorlist';
+const TerminatedEngagementsForAnEstablishmentAr = GOSI_URL_SITE + 'TerminatedEngagementsForAnEstablishmentAr';
+const injurynew = GOSI_URL_SITE + 'injurynew';
+const injurystatus = GOSI_URL_SITE + 'injurystatus';
+const employerservices1 = GOSI_URL_SITE + 'employerservices1';
+const OurServicesForEstablishments = GOSI_URL_SITE + 'OurServicesForEstablishments';
+const LoginPage = GOSI_URL_SITE + 'Login';
+const InstallmentOfDebtPage = GOSI_URL_SITE + 'Installment_of_Debt';
+// $$ABDULLAH$$
+const valueVar = 'GOSIChatInitialize';
+const keySize = 256;
+const ivSize = 128;
+const iterations = 100;
+
+var establishmentArrGlobal = [];
+var establishmentObject = {};
+var establishmentMap = new Map();
+var showedEstablishment = '';
+var selectedEstRegNum;
+var officerObject = {};
+
+const btcAppConfig_gosi = getGosiConfig();
+
+const gosibtcLogger = initBtcLogger(webChatID, btcLogLevel.DEBUG, btcLogType.CONSOLE_LOG);
+var myLibrarySettings_gosi = new eGainLibrarySettings();
+
+myLibrarySettings_gosi.CORSHost = btcAppConfig_gosi.btc_ece_fqdn + '/system/';
+myLibrarySettings_gosi.eGainContextPath = '/system/templates/chat/' + btcAppConfig_gosi.btc_ece_template + '/';
+myLibrarySettings_gosi.IsDevelopmentModeOn = false;
+myLibrarySettings_gosi.customMsgPath = btcAppConfig_gosi.btc_custom_msg;
+
+var myLibrary_gosi = new eGainLibrary(myLibrarySettings_gosi);
+var myChat_gosi = new myLibrary_gosi.Chat();
+var gosiEventHandlers = myChat_gosi.GetEventHandlers();
+
+gosiEventHandlers.OnConnectSuccess = function(ChatConnectEventArgs) {
+    localStorage.setItem('fcc_requestId', ChatConnectEventArgs.RequestID);
+    localStorage.setItem('fcc_sessionId', ChatConnectEventArgs.SessionID);
+    localStorage.setItem('fcc_activityId', ChatConnectEventArgs.ChatID);
+    localStorage.setItem('fcc_emailAddress', document.getElementById("emailAddress").value);
+
+    this.myRequestID = ChatConnectEventArgs.RequestID;
+    this.mySessionID = ChatConnectEventArgs.SessionID;
+    this.myActivityID = ChatConnectEventArgs.ChatID;
+};
+
+gosiEventHandlers.OnConnectionFailure = function(args) {
+    localStorage.removeItem("fcc_sessionId");
+    localStorage.removeItem("fcc_requestId");
+
+
+    agentName = agentJoinedEventArgs.AgentName;
+    var namesArray = agentName.split(" ");
+    var fName = namesArray[0];
+    appendAgentChat('نأسف. حدث خطأ ما ، الرجاء المحاولة مرة أخرى');
+
+};
+
+gosiEventHandlers.OnAgentMessageReceived = function(agentMessageReceivedEventArgs) {
+    const chat_msg = agentMessageReceivedEventArgs.Message;
+    appendAgentChat(chat_msg);
+};
+
+gosiEventHandlers.OnAgentsNotAvailable = function(agentsNotAvailableEventArgs) {
+    localStorage.removeItem("fcc_sessionId");
+    localStorage.removeItem("fcc_requestId");
+
+    appendAgentChat('عفواً ، لا يوجد ممثل خدمة عملاء متاح للرد الآن.');
+
+};
+
+gosiEventHandlers.OnConnectionComplete = function() {
+
+
+    $("#sendchat_txt").prop('disabled', true);
+    $("#sendtext_btn").prop('disabled', true);
+
+
+    const session = this;
+    try {
+        const surveyURL = btcAppConfig_gosi.btc_survey_fqdn + "?ACTIVITY_ID=" + session.myActivityID;
+    } catch (e) {
+        return;
+    }
+    if (localStorage.getItem('fcc_sessionId') != null) {
+        var NoMsg = '<span>تم انهاء المحادثة. إذا كان لديك أسئلة أو استفسارات أخرى، تواصل معنا مرة أخرى وسنسعد بخدمتك</span><br/>';
+        NoMsg += '<div>';
+        NoMsg += '<input class="btn button_cutom" type="button" value="انهاء وتقييم" onclick="endAndGotoEval()" id="genericNoBtn"/>';
+        NoMsg += '</div>';
+        appendAgentChat(NoMsg);
+    }
+
+};
+
+gosiEventHandlers.OnConnectionInitialized = function(evt) {
+    const available = evt.checkEligibility.responseType;
+    if (available === 0) {
+
+        var sessionId = localStorage.getItem('fcc_sessionId');
+        var requestID = localStorage.getItem('RequestID');
+
+        if (sessionId != null && requestID != null) {
+            myChat_gosi.Attach(sessionId, requestID);
+
+        } else {
+            allchatConv = localStorage.getItem("fcc_chatConv");
+            localStorage.removeItem("fcc_chatConv");
+            localStorage.removeItem("fcc_activityId");
+            localStorage.removeItem("fcc_emailAddress");
+            startGosiConversion();
+        }
+
+    } else {
+        localStorage.removeItem("fcc_sessionId");
+        localStorage.removeItem("fcc_requestId");
+
+        appendAgentChat('عفواً ، لا يوجد ممثل خدمة عملاء متاح للرد الآن.');
+
+    }
+
+};
+
+gosiEventHandlers.OnAgentJoined = function(agentJoinedEventArgs) {
+    agentName = agentJoinedEventArgs.AgentName;
+    var namesArray = agentName.split(" ");
+    var fName = namesArray[0];
+
+    appendAgentChat('مرحبا بك ، معك ' + fName + 'تفضل كيف أقدر أخدمك');
+};
+
+gosiEventHandlers.OnCustomerAttachmentNotificationSent = function(eventArgs) {
+
+    appendCustomerChat('ملف مرفق.');
+
+};
+
+gosiEventHandlers.OnAttachmentAcceptedByAgent = function(eventArgs) {
+
+    appendAgentChat('تم قبول الملف المرفق.');
+
+
+    const input = $('#fileattachment')[0]
+
+    if (input.files && input.files[0]) {
+        file = input.files[0];
+
+
+        appendCustomerChat('جارٍ تحميل الملف المرفق ...');
+
+
+        myChat_gosi.UploadAttachment(file, window.agentName);
+    }
+};
+
+gosiEventHandlers.OnAttachmentRejectedByAgent = function(eventArgs) {
+
+    appendAgentChat('تم رفض الملف المرفق ، الرجاء المحاولة مرة آخرى.');
+
+
+};
+
+gosiEventHandlers.OnAttachmentUploadedByCustomer = function(eventArgs) {
+
+    appendAgentChat('تم استلام الملف بنجاح.');
+
+};
+
+gosiEventHandlers.OnConnectionAttached = function() {
+    var chatConv = localStorage.getItem('fcc_chatConv');
+    document.getElementById("chat-conv").innerHTML = chatConv;
+};
+
+gosiEventHandlers.OnAttachmentInviteReceived = function(eventArgs) {
+
+    var ArgsJSON = JSON.stringify(eventArgs);
+    var obj = JSON.parse(ArgsJSON);
+
+    var fileId = obj["Attachment"]["Id"];
+
+
+    appendAgentChat('تم إرفاق الملف ، يرجى التحقق من الملف الذي تم تنزيله.');
+
+
+    myChat_gosi.GetArticleAttachment(fileId);
+};
+gosiEventHandlers.OnCustTerminateSuccess = function() {
+
+};
+gosiEventHandlers.OnSystemMessageReceived = function(systemMessageReceivedEventArgs) {
+
+};
+gosiEventHandlers.OnErrorOccurred = function(chatErrorOccurredEventArgs) {
+
+};
+gosiEventHandlers.OnConnectionAttachedFailure = function() {
+
+};
+gosiEventHandlers.OnDuplicateSession = function(evts) {
+
+};
+
+function getGosiConfig() {
+
+    var appConfig = {};
+
+    appConfig.btc_ece_fqdn = LiveChat_URL;
+    appConfig.btc_ece_template = "chat-demo-gosionline";
+    appConfig.btc_ece_endpoint = appConfig.btc_ece_fqdn + "/system/templates/chat/" + appConfig.btc_ece_template + "/chat_client.html";
+    appConfig.btc_ece_chatpoint = LiveChat_Port;
+    appConfig.btc_custom_msg = '';
+    appConfig.btc_survey_fqdn = "https://fcccwewvp01.gosi.ins/system/templates/chat/" + appConfig.btc_ece_template + "/survey/sample_survey.html";
+
+    appConfig.btc_logserver_transport = "http://";
+    appConfig.btc_logserver_ipaddr = "localhost";
+    appConfig.btc_logserver_port = "7860";
+    appConfig.btc_logserver_endpoint = appConfig.btc_logserver_transport + appConfig.btc_logserver_ipaddr + ":" + appConfig.btc_logserver_port;
+
+    appConfig.btc_imgdir = "img/";
+    appConfig.btc_imgdir = "css/";
+
+    return appConfig;
+
+}
+
+
+function fillEstablishmentsMap() {
+
+    selectedEstRegNum = 0;
+    showedEstablishment = '';
+    serviceFailure = false;
+    for (var i = 0; i < establishmentArrGlobal.length; i++) {
+        establishmentObject = {};
+        establishmentObject.type = establishmentArrGlobal[i].type;
+        establishmentObject.establishmentnamearb = establishmentArrGlobal[i].establishmentnamearb;
+        establishmentObject.commercialregistrationnumber = establishmentArrGlobal[i].commercialregistrationnumber;
+        establishmentObject.licensenumber = establishmentArrGlobal[i].licensenumber;
+        establishmentObject.status = establishmentArrGlobal[i].status;
+        establishmentObject.statusCode = establishmentArrGlobal[i].statuscode;
+        establishmentObject.authorised_id = establishmentArrGlobal[i].authorised_id;
+        establishmentObject.ninumber = establishmentArrGlobal[i].ninumber;
+        establishmentObject.newninumber = establishmentArrGlobal[i].newninumber;
+        establishmentObject.entityType = establishmentArrGlobal[i].entityType;
+        establishmentObject.recruitmentnumber = establishmentArrGlobal[i].recruitmentnumber;
+        establishmentObject.registrationnumber = establishmentArrGlobal[i].registrationnumber;
+        establishmentObject.legalentity = establishmentArrGlobal[i].legalentity;
+        establishmentMap.set(establishmentArrGlobal[i].registrationnumber, establishmentObject);
+
+    }
+    var welcomeMsg = '';
+    if (establishmentMap.size > 1) {
+        welcomeMsg = '<p> ' + msgFromBotGlobal.est_welcome_msg + '</p> <br/>';
+        appendAgentChat(welcomeMsg);
+        generateEstablishmentBtn();
+    } else {
+        welcomeMsg = '<p> ' + msgFromBotGlobal.est_welcome_msg + '</p> <br/>';
+        appendAgentChat(welcomeMsg);
+        selectOneEstablishment(establishmentArrGlobal[0].registrationnumber);
+    }
+
+}
+
+function generateUserTypesLinksGOSI() {
+    var btn = '<span>عزيزي *'+nameGlobal.split(" ")[0]+' اضغط على نوع المستخدم الذي تود الاستفسار</span><br/>';
+	
+	var i = 0;
+	
+    userTypesList.forEach((item, index) => {
+		
+        if (item.label == 'استفسار كمستحق لراتب تقاعدي') { item.label = 'استفسار كمتقاعد' }
+        btn += '<input class="btn button_cutom" type="button" onclick="selectMenu(this,\'GOSI\')" value="' + item.label + '"+ id="' + index + '_btn"/>';
+    });
+	if(userRole === 'SINGLE'){
+		showPPA = true;
+		btn += '<a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a>';
+	}
+    appendAgentChat(btn);
+}
+
+function selectMenuGOSI(user) {
+
+    userType = user.type;
+    if (user.type == 'owner') {
+        establishmentArrGlobal = msgFromBotGlobal.est_info_list;
+        fillEstablishmentsMap();
+    } else if (user.type == 'contributor') {
+        createContributorMsg(msgFromBotGlobal, user);
+    } else {
+        createGenWelcomeMsg(user, user)
+    }
+}
+
+function generateEstablishmentBtn() {
+    var index = -1;
+    var htmlbuttons = '';
+    serviceFailure = false;
+
+    for (let [key, value] of establishmentMap) {
+        if (index < 4) {
+            if (!showedEstablishment.includes("" + key)) {
+                index++;
+                var btn = '<input class="btn button_cutom" type="button" onclick="selectEstablishment(this)" value="' + value.establishmentnamearb + '"+ id="' + key + '"/>';
+                showedEstablishment += key + ',';
+                htmlbuttons += btn;
+            } else {
+                continue;
+            }
+        } else {
+            var btn_more = '<input class="btn button_cutom" type="button" onclick="generateEstablishmentBtn()" value="عرض المزيد من المنشآت"+ id="more_est"/>';
+            htmlbuttons += btn_more;
+            break;
+        }
+    }
+	if(userRole === 'SINGLE' && !showPPA){
+		
+		htmlbuttons += '<a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a>';
+	}
+    if (htmlbuttons != '') {
+        appendAgentChat(htmlbuttons);
+    }
+
+}
+
+function selectOneEstablishment(id) {
+    selectedEstRegNum = Number(id);
+    checkofficerMSGORServMenu();
+}
+
+function selectEstablishment(event) {
+    selectedEstRegNum = Number(event.id);
+    var establishmentdata = establishmentMap.get(selectedEstRegNum);
+    appendCustomerChat(establishmentdata.establishmentnamearb);
+    checkofficerMSGORServMenu();
+}
+
+function checkofficerMSGORServMenu() {
+    officerObject = {};
+    executeRasaApi("officerdetails " + selectedEstRegNum, function(data) {
+
+        if (data[0] !== undefined) {
+            var obj = data[0].custom;
+            officerObject.RELATIONSOFFICERNAME = obj.RELATIONSOFFICERNAME;
+            officerObject.TELEPHONENUMBER = '0' + obj.TELEPHONENUMBER;
+            officerObject.EMAIL = obj.EMAIL;
+            establishmentOfficerMsg();
+        } else {
+            appendAgentChat(servicesMenu(false));
+        }
+
+    });
+}
+
+function establishmentOfficerMsg() {
+
+    var officerMsg;
+
+    officerMsg = '<span>';
+    officerMsg += ' رغبة من المؤسسة في تسهيل عملية التواصل معكم وسرعة إنجاز جميع الأعمال المتعلقة بكم، نفيدكم أن المؤسسة قامت بتخصيص مسؤول علاقات خاص بكم وهو </span>';
+    officerMsg += '<span><strong>الاستاذ/' + officerObject.RELATIONSOFFICERNAME + '</strong></span><br/>';
+    officerMsg += '<span><strong>ورقم الاتصال/ ' + officerObject.TELEPHONENUMBER + '</strong></span><br/>';
+    officerMsg += '<span><strong>والبريد الالكتروني/ <a  href="' + officerObject.EMAIL + '" target="_blank" rel="noopener noreferrer">' + officerObject.EMAIL + '</a></strong></span><br/>';
+    officerMsg += '<span>نأمل منكم التواصل معه خلال ساعات العمل الرسمية (الأحد إلى الخميس من الساعة 8 صباحاً حتى 3 مساءً عدا العطلات الرسمية) </span>';
+    officerMsg += '<span> للاستفسار عن كافة المعاملات المتعلقة بالتأمينات الاجتماعية حيث سيتم إنجاز كافة المعاملات وتلقي الاستفسارات عن طريقه.</span><br/>';
+    officerMsg += '<span> وفي حال وجود أي ملاحظات أو شكاوى على الخدمات المقدمة لكم بإمكانكم التواصل معنا على البريد الالكتروني';
+    officerMsg += '<span><strong><a  href="private@gosi.gov.sa" target="_blank" rel="noopener noreferrer">private@gosi.gov.sa</a></strong></span><br/>';
+    officerMsg += generateServiceMenuBtn();
+    appendAgentChat(officerMsg);
+
+}
+
+function servicesMenu(print) {
+
+    var establishmentChoices = '';
+    establishmentChoices += '<div><strong style="color:#000">اختر</strong> من القائمة الخدمة اللي ودك تستفسر عنها أو <strong style="color:#000">اكتب</strong> استفسارك مباشرة</div><br/>';
+    establishmentChoices += '<a class="linkBtn" onclick="estChoiceNum2()" target="_blank"> إدارة المنشآت</a><br/>';
+    establishmentChoices += '<a class="linkBtn" onclick="estContributerServ()" target="_blank"> خدمات المشتركين</a><br/>';
+    establishmentChoices += '<a class="linkBtn" onclick="estChoiceNum7()" target="_blank"> الطلبات / الشكاوى</a><br/>';
+	establishmentChoices += '<a class="linkBtn" onclick="generateEstReport('+selectedEstRegNum+')" target="_blank">شهادة المنشأة</a><br/>';
+		if(userRole === 'SINGLE' && !showPPA){
+		
+		establishmentChoices += '<a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a>';
+	}
+    if (print) appendAgentChat(establishmentChoices + generateEstListBtn());
+    return establishmentChoices + generateEstListBtn();
+}
+
+function getEstablishmentInfo() {
+
+    var establishmentdata = establishmentMap.get(selectedEstRegNum);
+    var details1 = '<span> إسم المنشأة : ' + establishmentdata.establishmentnamearb + '</span><br/>';
+    details1 += '<span> رقم إشتراك المنشأة : ' + establishmentdata.registrationnumber + '</span><br/>';
+    if (establishmentdata.commercialregistrationnumber != null && establishmentdata.commercialregistrationnumber != 0) {
+        details1 += '<span> رقم السجل التجارى  : ' + establishmentdata.commercialregistrationnumber + '</span><br/>';
+    }
+    if (establishmentdata.licensenumber != null && establishmentdata.licensenumber != 0) {
+        details1 += '<span> رقم الترخيص : ' + establishmentdata.licensenumber + '</span><br/>';
+    }
+    if ((establishmentdata.commercialregistrationnumber != null && establishmentdata.commercialregistrationnumber != 0) && (establishmentdata.licensenumber != null && establishmentdata.licensenumber != 0)) {
+        if (establishmentdata.recruitmentnumber != null && establishmentdata.recruitmentnumber != 0) {
+            details1 += '<span> رقم الاستقدام : ' + establishmentdata.recruitmentnumber + '</span><br/>';
+        }
+    }
+    details1 += '<span> حاله المنشأة : ' + establishmentdata.status + '</span><br/>';
+    return details1;
+}
+
+function estChoiceNum2() {
+    appendCustomerChat('إدارة المنشآت');
+    var msg = '';
+    msg += getEstablishmentInfo();
+    msg += '<a class="linkBtn" onclick="estChoiceNum2_1()" target="_blank">كيفية تعديل الكيان القانوني</a><br/>';
+    msg += '<a class="linkBtn" onclick="estChoiceNum2_2()" target="_blank">إدارة مشرفي/ملاك المنشأة</a><br/>';
+    msg += '<a class="linkBtn" onclick="estChoiceNum2_3()" target="_blank">خطوات تعديل بيانات المنشأة</a><br/>';
+    msg += '<a class="linkBtn" onclick="estChoiceNum2_4()" target="_blank"> الخدمات المالية و الشهادات</a><br/>';
+    msg += '<a class="linkBtn" onclick="estChoiceNum2_5()" target="_blank"> كيفية انهاء نشاط منشأة</a><br/>';
+    msg += generateEstListBtn() + generateServiceMenuBtn()
+    appendAgentChat(msg);
+}
+
+function estChoiceNum2_1() {
+    appendCustomerChat('تعديل الكيان القانوني');
+    var msg = '<span>يمكن تعديل الكيان القانوني للمنشأة وذلك بالدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a> واختيار المنشأة ومن ثم التعديل في حقل الكيان القانوني.</span><br/>';
+    msg += goTOPrevMenu('estChoiceNum2()') + generateEstListBtn() + generateServiceMenuBtn()
+    appendAgentChat(msg);
+}
+
+function estChoiceNum2_2() {
+    appendCustomerChat('إدارة مشرفي/ملاك المنشأة');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a> واختيار المنشأة ثم الضغط على زر <strong>إدارة مشرفي المنشأة</strong> أو زر <strong>ملاك المنشأة</strong></span><br/>';
+    msg += goTOPrevMenu('estChoiceNum2()') + generateEstListBtn() + generateServiceMenuBtn()
+    appendAgentChat(msg);
+}
+
+function estChoiceNum2_3() {
+    appendCustomerChat('خطوات تعديل بيانات المنشأة');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a> واختيار المنشأة ثم الضغط على <strong>القلم</strong> المقابل للقسم المراد تعديله</span><br/>';
+    msg += goTOPrevMenu('estChoiceNum2()') + generateEstListBtn() + generateServiceMenuBtn()
+    appendAgentChat(msg);
+}
+
+function estChoiceNum2_4() {
+    appendCustomerChat(' الخدمات المالية و الشهادات');
+    var details5 = '';
+    details5 += '<label>سداد فواتير المنشأة يكون عبر جميع البنوك بكل القنوات المتاحة عن طريق نظام سداد برقم اشتراك المنشأة، ويجب ألا يتجاوز سداد الفواتير اليوم الخامس عشر من الشهر الميلادي لما قد يترتب عليه من احتساب غرامات التأخير وعدم التمكن من طباعة شهادة المنشأة.</label><br/>'
+    details5 += '<a class="linkBtn" onclick="estChoiceNum2_4_1()" target="_blank">خطوات إصدار الشهادة (التزام وزكاة ودخل)</a><br/>';
+    details5 += '<a class="linkBtn" onclick="estChoiceNum2_4_2()" target="_blank">الخدمات المالية </a><br/>';
+    details5 += goTOPrevMenu('estChoiceNum2()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(details5);
+
+}
+
+function estChoiceNum2_4_1() {
+    appendCustomerChat('خطوات إصدار الشهادة (التزام وزكاة ودخل)');
+    var msg = '<span>لإصدار الشهادات يمكن الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a> و اختيار المنشأة ومن ثم الضغط على زر <strong>الشهادة</strong> واختيار نوع الشهادة المراد إصدارها.</span><br/>';
+    msg += goTOPrevMenu('estChoiceNum2_4()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function estChoiceNum2_4_2() {
+    appendCustomerChat('الخدمات المالية');
+    var msg = '<span>لاستعراض الفاتورة والايصالات وخدمة الإعفاء من الغرامات و التقسيط يمكن الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a> و الذهاب إلى <strong>الخدمات المالية</strong>.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/financial_services.jpg" onclick="openImg(this);"></img><br/>';
+    msg += '<a class="linkBtn" onclick="estChoiceNum2_4_2_1()" target="_blank">تقسيط مديونية </a><br/>';
+    msg += '<a class="linkBtn" onclick="estChoiceNum2_4_2_2()" target="_blank">الرصيد الدائن للمنشآة</a><br/>';
+    msg += goTOPrevMenu('estChoiceNum2_4()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function estChoiceNum2_4_2_1() {
+    appendCustomerChat('تقسيط مديونية');
+    var msg = '';
+    msg += '<span>لطلب تقسيط المديونية اضغط <a  href="' + InstallmentOfDebtPage + '" target="_blank" rel="noopener noreferrer">هنا</a></span><br/>';
+    msg += '<span>كما يمكنك الاطلاع على <Strong>ملخص التقسيط </Strong> من خلال <strong>الخدمات المالية</strong> في <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>.</span><br/>';
+    msg += goTOPrevMenu('estChoiceNum2_4_2()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function estChoiceNum2_4_2_2() {
+    appendCustomerChat('الرصيد الدائن للمنشآة');
+    var msg = '<span>يتم رد الرصيد الدائن للمنشأة التي تم إنهاء نشاطها آليا بالتحويل إلى الحساب البنكي المسجل في التأمينات. ويمكن لصاحب العمل تحويل الرصيد الدائن بين منشآته المرتبطة من خلال خدمة <strong>تحويل رصيد دائن</strong> المتوفرة ضمن <strong>الخدمات المالية</strong> في <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/Credit_balance_refund.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('estChoiceNum2_4_2()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function estChoiceNum2_5() {
+    appendCustomerChat('كيفية انهاء نشاط منشأة');
+    var msg = '';
+    msg += '<span><strong>للمنشآت المسجلة استباقياُ</strong> يتم إنهاء النشاط بشكل مباشر بناء على البيانات الواردة من وزارة الموارد البشرية والتنمية الاجتماعية.</span><br/>';
+    msg += '<span><strong> للمنشآت غير المسجلة استباقياُ </strong>يتم إنهاء النشاط من خلال الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a> واختيار المنشأة و من ثم الضغط على النقاط الثلاث في ملف المنشأة واختيار <strong>إنهاء نشاط المنشأة</strong>.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/terminate_est.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('estChoiceNum2()') + generateEstListBtn() + generateServiceMenuBtn()
+    appendAgentChat(msg);
+}
+
+function estChoiceNum7() {
+    appendCustomerChat('الطلبات / الشكاوى');
+    var details7 = '';
+    details7 += '<span>يمكنك تتبع الطلبات المرفوعة من خلال <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a> عن طريق <strong>صندوق البريد</strong></span><br/>';
+    details7 += '<span>كما يمكنك تقديم <strong>طلب</strong> أو <strong>شكوى</strong> من <a href="' + ContactUs + '" target="_blank" rel="noopener noreferrer">هنا</a></span><br/>';
+    details7 += '<span> و لتتبع الطلبات والشكاوى السابقة اضغط <a  href="' + Track_Transaction_for_Establishment + '" target="_blank" rel="noopener noreferrer">هنا</a></span><br/>';
+    details7 += generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(details7);
+}
+
+function estChoiceNum8() {
+    var details8 = '';
+    details8 += '<a class="linkBtn" href="' + onlineregistrationEstablishment + '" target="_blank" rel="noopener noreferrer">خطوات تسجيل دخول صاحب العمل للتأمينات أون لاين</a><br/>';
+    details8 += '<a class="linkBtn" href="' + contributorlist + '" target="_blank" rel="noopener noreferrer">خطوات إصدار قائمة بالمشتركين المسجلين</a><br/>';
+    details8 += '<a class="linkBtn" href="' + TerminatedEngagementsForAnEstablishmentAr + '" target="_blank">خطوات عرض قائمة بالمشتركين المستبعدين لدى المنشأة</a><br/>';
+    details8 += '<a class="linkBtn" href="' + injurynew + '" target="_blank" rel="noopener noreferrer">خطوات إدخال إصابة مهنية جديدة</a><br/>';
+    details8 += '<a class="linkBtn" href="' + injurystatus + '" target="_blank" rel="noopener noreferrer">خطوات الاستفسار عن حالة إصابة</a><br/>';
+    details8 += '<a class="linkBtn" href="' + employerservices1 + '" target="_blank" rel="noopener noreferrer">خطوات التقديم على خدمات الفروع الالكترونية لأصحاب العمل</a><br/>';
+    details8 += generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(details8);
+}
+
+function estContributerServ() {
+    appendCustomerChat('خدمات المشتركين');
+    var contributerChoices = '';
+    executeRasaApi("contributerNumbers " + selectedEstRegNum, function(data) {
+        var saudi = 0,
+            nonSaudi = 0,
+            nonSaudiWaiting = 0;
+        if (data[0] !== undefined) {
+            var elements = data[0].custom.elements;
+            for (var i = 0; i < elements.length; i++) {
+                var obj = elements[i];
+                if (obj.nationality == 'NON SAUDI') {
+                    nonSaudi = obj.count_0;
+                } else if (obj.nationality == 'SAUDI') {
+                    saudi = obj.count_0;
+                } else if (obj.nationality == 'NON SAUDI WATING') {
+                    nonsaudiwaiting = obj.count_0;
+                }
+
+            }
+            contributerChoices += '<label> المشتركين السعوديين : ' + saudi + '</label><br/>';
+            contributerChoices += '<label> المشتركين الغير السعوديين : ' + nonSaudi + ' </label><br/>';
+            contributerChoices += '<label> المشتركين الغير سعوديين المطلوب إكمال بياناتهم : ' + nonSaudiWaiting + ' </label><br/>';
+
+        } else {
+            contributerChoices = '<span>عذراً، المعلومة المطلوبة غير متاحة حالياً</span><br/><span>اكتب كلمة "مساعدة" حتى أحولك لممثل خدمة العملاء.</span><br/>';
+        }
+        contributerChoices += '<a class="linkBtn" onclick="contChoiceNum1()" target="_blank"> خطوات الوصول لملف المشترك</a><br/>';
+        contributerChoices += '<a class="linkBtn" onclick="contChoiceNum2()" target="_blank">  تسجيل / استبعاد مشترك</a><br/>';
+        contributerChoices += '<a class="linkBtn" onclick="contChoiceNum3()" target="_blank">  نقل المشتركين </a><br/>';
+        contributerChoices += '<a class="linkBtn" onclick="contChoiceNum4()" target="_blank"> عرض واضافة عقد مشترك</a><br/>';
+        contributerChoices += '<a class="linkBtn" onclick="contChoiceNum5()" target="_blank"> تعديل بيانات المشتركين</a><br/>';
+        contributerChoices += '<a class="linkBtn" onclick="contChoiceNum6()" target="_blank"> خطوات الإبلاغ عن إصابة عمل</a><br/>';
+        appendAgentChat(contributerChoices + generateEstListBtn() + generateServiceMenuBtn());
+    });
+
+}
+
+function contChoiceNum1() {
+    appendCustomerChat('خطوات الوصول لملف المشترك');
+    var msg = '<span>يمكن الوصول إلى ملف المشترك من خلال <strong>قائمة المشتركين</strong> ضمن الخدمات المتوفرة في <strong>خدمات المشتركين</strong> </span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/subscriber_services.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('estContributerServ()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function contChoiceNum2() {
+    appendCustomerChat('تسجيل / استبعاد مشترك');
+    var msg = '';
+    msg += '<a class="linkBtn" onclick="contChoiceNum2_1()" target="_blank"> خطوات تسجيل مشترك</a><br/>';
+    msg += '<a class="linkBtn" onclick="contChoiceNum2_2()" target="_blank"> خطوات استبعاد مشترك</a><br/>';
+    msg += goTOPrevMenu('estContributerServ()') + generateEstListBtn() + generateServiceMenuBtn()
+    appendAgentChat(msg);
+}
+
+function contChoiceNum2_1() {
+    appendCustomerChat('خطوات تسجيل مشترك');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>، ومن ثم الذهاب إلى <strong>خدمات المشتركين</strong> واختيار <strong>تسجيل المشترك</strong></span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/add_new_saudi_emp.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('contChoiceNum2()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function contChoiceNum2_2() {
+    appendCustomerChat('خطوات استبعاد مشترك');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>، ومن ثم الذهاب إلى <strong>خدمات المشتركين</strong> واختيار <strong>قائمة المشتركين</strong>، اختيار <strong>المشترك</strong> ثم الضغط على <strong>النقاط الثلاث</strong> يسار الصفحة، ثم الضغط على <strong>استبعاد</strong>.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/del_saudi_emp.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('contChoiceNum2()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function contChoiceNum3() {
+    appendCustomerChat('نقل المشتركين');
+    var msg = '';
+    msg += '<a class="linkBtn" onclick="contChoiceNum3_1()" target="_blank">خطوات نقل مشترك</a><br/>';
+    msg += '<a class="linkBtn" onclick="contChoiceNum3_2()" target="_blank">خطوات نقل جميع المشتركين</a><br/>';
+    msg += goTOPrevMenu('estContributerServ()') + generateEstListBtn() + generateServiceMenuBtn()
+    appendAgentChat(msg);
+}
+
+function contChoiceNum3_1() {
+    appendCustomerChat('خطوات نقل مشترك');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>، ومن ثم الذهاب إلى <strong>خدمات المشتركين</strong> واختيار <strong>قائمة المشتركين</strong>،  اختيار <strong>المشترك</strong> ثم الضغط على <strong>النقاط الثلاث</strong> ثم الضغط على <strong>نقل</strong>.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/change_emp_branch.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('contChoiceNum3()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function contChoiceNum3_2() {
+    appendCustomerChat('خطوات نقل جميع المشتركين');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>، ومن ثم الذهاب إلى <strong>خدمات المشتركين</strong> واختيار<strong>نقل جميع المشتركين</strong>.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/change_emp_branch2.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('contChoiceNum3()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function contChoiceNum4() {
+    appendCustomerChat('عرض واضافة عقد مشترك');
+    img1url = '/chat/img/ChatBotImg/contract_view.jpg'
+    img2url = '/chat/img/ChatBotImg/add_contract.jpg'
+    var msg = '<p><span>الدخول على <a href="' + LoginPage + '" target="_blank" rel="noopener">تأميناتي أعمال</a>، ومن ثم الذهاب إلى <strong>خدمات المشتركين</strong> واختيار <strong>قائمة المشتركين</strong>، اختيار <strong>المشترك</strong> ثم الضغط على <strong>النقاط الثلاث <a href="' + img1url + '"  target="_blank" rel="noopener">عرض العقود</a>&nbsp;</strong>أو<a href="' + img2url + '"  target="_blank" rel="noopener"><strong> اضافة عقد</strong></a></span></p>';
+    msg += goTOPrevMenu('estContributerServ()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function contChoiceNum5() {
+    appendCustomerChat('تعديل بيانات المشتركين');
+    var msg = '';
+    msg += '<a class="linkBtn" onclick="contChoiceNum5_1()" target="_blank"> خطوات تعديل بيانات مدة لمشترك نشيط</a><br/>';
+    msg += '<a class="linkBtn" onclick="contChoiceNum5_2()" target="_blank"> خطوات تعديل بيانات الشهر الحالي (الأجر والمهنة)</a><br/>';
+    msg += '<a class="linkBtn" onclick="contChoiceNum5_3()" target="_blank"> خطوات تحديث أجور مجموعة من المشتركين</a><br/>';
+    msg += goTOPrevMenu('estContributerServ()') + generateEstListBtn() + generateServiceMenuBtn()
+    appendAgentChat(msg);
+}
+
+function contChoiceNum5_1() {
+    appendCustomerChat('خطوات تعديل بيانات مدة لمشترك نشيط');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>،ومن ثم الذهاب إلى <strong>خدمات المشتركين</strong> واختيار <strong>قائمة المشتركين</strong>، اختيار <strong>المشترك</strong> ثم الضغط على <strong>النقاط الثلاث يسار الصفحة</strong>، ثم الضغط على <strong>تعديل</strong>.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/Retroactive_registration.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('contChoiceNum5()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function contChoiceNum5_2() {
+    appendCustomerChat('خطوات تعديل بيانات الشهر الحالي (الأجر والمهنة)');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>، ومن ثم الذهاب إلى <strong>خدمات المشتركين</strong> واختيار <strong>قائمة المشتركين</strong>، اختيار <strong>المشترك</strong> ثم الضغط على <strong>القلم يسار الصفحة</strong>، لتعديل الأجر والمهنة.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/update_monthly_wages.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('contChoiceNum5()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function contChoiceNum5_3() {
+    appendCustomerChat('خطوات تحديث أجور مجموعة من المشتركين');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>، ومن ثم الذهاب إلى <strong>خدمات المشتركين</strong> واختيار <strong>خدمة إدارة الأجور</strong>.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/upload_annual_wages_file.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('contChoiceNum5()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+// $$ABDULLAH$$ 12/SEP : I Commented Rahul Encryption Code
+// function encrypt(msg, pass) {
+//     var salt = CryptoJS.lib.WordArray.random(128 / 8);
+
+//     var key = CryptoJS.PBKDF2(pass, salt, {
+//         keySize: keySize / 32,
+//         iterations: iterations
+//     });
+
+//     var iv = CryptoJS.lib.WordArray.random(ivSize / 8);
+
+//     var encrypted = CryptoJS.AES.encrypt(msg, key, {
+//         iv: iv,
+//         padding: CryptoJS.pad.Pkcs7,
+//         mode: CryptoJS.mode.CBC,
+//         hasher: CryptoJS.algo.SHA256
+//     });
+
+//     // salt, iv will be hex 32 in length
+//     // append them to the ciphertext for use  in decryption
+//     var transitmessage = salt.toString() + iv.toString() + encrypted.toString();
+//     return transitmessage;
+// }
+
+function contChoiceNum6() {
+    appendCustomerChat('خطوات الإبلاغ عن إصابة عمل');
+    var msg = '<span>الدخول على <a href="' + LoginPage + '" target="_blank">تأميناتي أعمال</a>، ومن ثم الذهاب إلى <strong>خدمات المشتركين</strong> واختيار خدمة <strong>الابلاغ عن أخطار مهنية</strong> وإدخال المعاملة المطلوبة، ومن خلال ملف المشترك يمكن التحقق من حالة المعاملة.</span><br/>';
+    msg += '<img style="cursor: pointer;" src="/chat/img/ChatBotImg/Work_injury_registration.jpg" onclick="openImg(this);"></img><br/>';
+    msg += goTOPrevMenu('estContributerServ()') + generateEstListBtn() + generateServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function generateServiceMenuBtnGREEN() {
+    showedEstablishment = '';
+    var estListbtn = '<input class="btn button_cutom" type="button" onclick="servicesMenu(' + true + ')" value="قائمة خدمات المنشآت" id="est-btn"/>';
+    return estListbtn;
+}
+
+function generateServiceMenuBtn() {
+    showedEstablishment = '';
+    var estListbtn = '<input class="btn listbtn" type="button" onclick="servicesMenu(' + true + ')" value="قائمة خدمات المنشآت" id="est-btn"/>';
+	if(userRole === 'SINGLE' && !showPPA){
+		
+		estListbtn += '<br/><a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a>';
+	}
+    return estListbtn;
+}
+
+function generateEstListBtn() {
+    showedEstablishment = '';
+    var estListbtn = '';
+    if (establishmentMap.size > 1) {
+        estListbtn += '<input class="btn button_cutom" type="button" onclick="generateEstablishmentBtn()" value="قائمة أسماء المنشآت" id="est-btn"/>';
+    }
+    return estListbtn;
+}
+
+function generateEstServicesBtn() {
+    var estServbtn = '<input class="btn" type="button"  value="نعم" id="est-services-btn"/>';
+    return estServbtn;
+}
+
+function generateCertififcate(conNin) {
+    executeRasaApi(`conNIN ${conNin}`, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+function printAnnuityCert() {
+    executeRasaApi(`generateAnnuityCert`, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+function printAnnuityDetailedCert() {
+    executeRasaApi(`generateAnnuityDetailedCert`, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+function printPendingContract(contractID,engagementID) {
+    executeRasaApi(`generatePendingContractCert `+contractID+`aa`+engagementID, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+
+function generateEstReport(estRegNum) {
+	executeRasaApi(`generateEstCert ${estRegNum}`, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+
+function getWageCert() {
+    executeRasaApi('GetContributorWageCertificate', function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+
+
+function appendWelcomeMsgFromBotGOSI(chat_msg) {
+	executeRasaApi(`setWhatSiteGosi`, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+	chatServiceType = 'GOSI';
+    if (chat_msg.cust_pro_link !== undefined && chat_msg.cust_pro_link != null) {
+        profileLinkGlobal = chat_msg.cust_pro_link;
+    }
+    if (chat_msg.id !== undefined && chat_msg.id != null) {
+        // $$ABDULLAH$$ 12/SEP : I commented Rahul Encrypt CODE
+        // idGlobal = encrypt(chat_msg.id, valueVar);
+        idGlobal = chat_msg.id;
+        showFeedback = true;
+    }
+    if (chat_msg.name !== undefined && chat_msg.name != null) {
+        nameGlobal = chat_msg.name.split(" ")[0];
+    }
+    const today = new Date();
+    const timeStr = today.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
+    var msg = chat_msg.msg + '<br>';
+    if (chat_msg.user_type !== undefined && chat_msg.user_type.length > 1) {
+        msgFromBotGlobal = chat_msg;
+        userTypesList = chat_msg.user_type;
+        generateUserTypesLinksGOSI();
+        return;
+    }
+    var usertype = chat_msg.user_type[0];
+    userType = usertype.type;
+    if (usertype !== undefined) {
+        if (usertype.type === 'contributor') {
+            createContributorMsg(chat_msg, usertype);
+            return;
+        }
+        if (usertype.type === 'owner') {
+            msgFromBotGlobal = chat_msg;
+            establishmentArrGlobal = chat_msg.est_info_list;
+            fillEstablishmentsMap();
+            return;
+        }
+    }
+    if (chat_msg.engagements === undefined) {
+        if (chat_msg.links !== undefined) {
+            msg = msg + '<label>' + '<strong style="color:#000">اختر من القائمة الخدمة اللي ودك تستفسر عنها أو اكتب استفسارك مباشرة</strong>' + '</label>' + '<br>'
+            chat_msg.links.forEach((item, index) => {
+                if (item.label.includes("wageCert")) {
+                    item.label = item.label.replace("wageCert", "");
+                    msg = msg + '<a class="linkBtn" onclick="getWageCert()">' + item.label + ' </a> <br>'
+                }else if (item.label === "شهادة بمقدار المعاش" || item.label === "شهادة مفصلة بمقدار المعاش" || item.label==="RetirementCard"){
+                    if(item.label==="RetirementCard"){
+                        item.label = "بطاقة المتقاعد"
+                    }
+					msg = msg + '<a class="linkBtn" href=' + item.link + ' rel="noopener noreferrer"> ' + item.label + ' </a> <br>';
+			} else {
+                    msg = msg + '<a class="linkBtn" href=' + item.link + ' target="_blank" rel="noopener noreferrer"> ' + item.label + ' </a> <br>';
+                }
+            });
+			if(userRole === 'SINGLE' && !showPPA){
+		
+		msg += '<a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a>';
+	}
+
+        }
+    }
+    if (usertype.type == 'contributor' || usertype.type == 'inactive' || usertype.type == 'vic') {
+        msg += ''
+    } else {
+        msg += afterWelcomeMessage();
+    }
+    const fromAgent = '<div class="agent_chat">' +
+        '	 <div class="agent_msg">' + msg + '</div><br>' +
+        '	 <span class="agent_msg_time">' + timeStr + '</span>' +
+        '</div>';
+
+    $('#chat_pane').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
+    $('#chat-conv').append(fromAgent);
+
+    var chatDiv = $("<div />").append($("#chat-conv").clone()).html();
+    localStorage.setItem('fcc_chatConv', chatDiv);
+}
+
+function createContributorMsg(chat_msg, user) {
+    const today = new Date();
+    const timeStr = today.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
+    var msg = user.msg + '<br>';
+    if (chat_msg.engagements !== undefined) {
+        chat_msg.engagements.forEach((item, index) => {
+            msg = msg + '<input class="btn" type="button" onclick="showContWelcomeMsgForEst(this)" value="' + item.establishmentName + '"+ id="' + index + '"/> <br>'
+        });
+		if(userRole === 'SINGLE' && !showPPA){
+		
+		msg += '<a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a>';
+	}
+		msg = msg + '<p class="agent_msg"> اختر المنشآة اللي ودك تستفسر عن اشتراكك فيها </p>'
+        msgFromBotGlobal = chat_msg;
+    } else {
+        if (user.links !== undefined) {
+            msg = msg + '<label>' + '<strong style="color:#000">اختر من القائمة الخدمة اللي ودك تستفسر عنها أو اكتب استفسارك مباشرة</strong>' + '</label>' + '<br>'
+			
+			user.links.forEach((item, index) => {
+                if (item.label.includes("wageCert")) {
+                    item.label = item.label.replace("wageCert", "");
+                    msg = msg + '<a class="linkBtn" onclick="getWageCert()">' + item.label + ' </a> <br>'
+                }else if (item.label === "شهادة بمقدار المعاش" || item.label === "شهادة مفصلة بمقدار المعاش"){
+					msg = msg + '<a class="linkBtn" href=' + item.link + ' rel="noopener noreferrer"> ' + item.label + ' </a> <br>';
+			} else {
+                    msg = msg + '<a class="linkBtn" href=' + item.link + ' target="_blank" rel="noopener noreferrer"> ' + item.label + ' </a> <br>';
+                }
+            });
+			if(userRole === 'SINGLE' && !showPPA){
+		
+		msg += '<a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a>';
+	}
+			
+        }
+    }
+	
+    if (user.type == 'contributor' || user.type == 'inactive' || user.type == 'vic') {
+        msg += '';
+    } else {
+        msg += afterWelcomeMessage();
+    }
+    const fromAgent = '<div class="agent_chat">' +
+        '	 <p class="agent_msg">' + msg + '</p>' +
+        '	 <span class="agent_msg_time">' + timeStr + '</span>' +
+        '</div>';
+
+    $('#chat_pane').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
+    $('#chat-conv').append(fromAgent);
+
+    var chatDiv = $("<div />").append($("#chat-conv").clone()).html();
+    localStorage.setItem('fcc_chatConv', chatDiv);
+}
+
+function showContWelcomeMsgForEst(event) {
+    var engagement = msgFromBotGlobal.engagements[event.id];
+    var date = new Date(engagement.dateOfEmployment);
+    var msg = 'انت تعمل لدى  ' + engagement.establishmentName + ' منذ ' + date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear() + '  بأجر اشتراك قدره ' + engagement.wageDetails[0].contributoryWage + ' ريال شهرياً.' +
+        'أجر الاشتراك = مجموع الراتب الأساسي + بدل السكن والعمولات الشهرية (إن وجدت).' + '<br>';
+    if (msgFromBotGlobal.links !== undefined) {
+        msg = msg + '<label>' + 'بإمكانك إنجاز الخدمات خطوة بخطوة من مكانك' + '</label>' + '<br>'
+        msgFromBotGlobal.links.forEach((item, index) => {
+            if (item.label.includes("wageCert")) {
+                item.label = item.label.replace("wageCert", "");
+                msg = msg + '<a class="linkBtn" onclick="getWageCert()">' + item.label + ' </a> <br>'
+            }else if (item.label === "شهادة بمقدار المعاش" || item.label === "شهادة مفصلة بمقدار المعاش"){
+					msg = msg + '<a class="linkBtn" href=' + item.link + ' rel="noopener noreferrer"> ' + item.label + ' </a> <br>';
+			} else {
+                msg = msg + '<a class="linkBtn" href=' + item.link + ' "target="_blank" rel="noopener noreferrer"> ' + item.label + ' </a> <br>';
+            }
+        });
+		if(userRole === 'SINGLE' && !showPPA){
+		
+		msg += '<a id="ppa-btn" class="linkBtn" onclick="startNLUChat(\'PPA\')" target="_blank">أنظمة التقاعد (المدني / العسكري)</a>';
+	}
+    }
+    appendAgentChat(msg + afterWelcomeMessage());
+}
+
+function resetGOSIGlobalvalues() {
+    userTypesList = [];
+    serviceFailure = false;
+    idGlobal = undefined;
+    userType = undefined;
+    idIsValid = false;
+    engagementsGlobal = [];
+    msgFromBotGlobal = undefined;
+    profileLinkGlobal = undefined;
+    nameGlobal = undefined;
+    establishmentArrGlobal = [];
+    establishmentObject = {};
+    establishmentMap = new Map();
+    showedEstablishment = '';
+    selectedEstRegNum;
+    officerObject = {};
+}
+
+function yesIdo_GOSI() {
+    if (idIsValid == true) {
+        if (idGlobal === undefined) {
+            appendAgentChat('للمتابعة الرجاء ادخال رمز التحقق');
+        } else {
+            appendAgentChat('تفضل بكتابة استفسارك');
+        }
+    } else {
+        appendAgentChat('للمتابعة الرجاء ادخال رقم الهوية/الاقامة');
+    }
+}
+
+function startGOSIChat() {
+    //appendCustomerChat('نظام التأمينات');
+    //chatServiceType = 'GOSI';
+    $("#sendchat_txt").prop('disabled', false);
+    $("#sendtext_btn").prop('disabled', false);
+    $('#sendchat_txt').focus();
+    sendToBot('gosistart');
+}
+
+function pensionerVirtualCard() {
+    executeRasaApi(`التقاعد الافتراضية`, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+
+function startGosiConversion() {
+
+    var customerObject = new myLibrary_gosi.Datatype.CustomerObject();
+    var key = idGlobal;
+    if (idGlobal == null || idGlobal === undefined) {
+        key = create_UUID();
+    }
+    var mail = key + '@any.com'
+    customerObject.SetPrimaryKey(customerObject.PrimaryKeyParams.PRIMARY_KEY_EMAIL, key + '@any.com');
+    var customerFirstName = new myLibrary_gosi.Datatype.CustomerParameter();
+    customerFirstName.eGainParentObject = "casemgmt";
+    customerFirstName.eGainChildObject = "individual_customer_data";
+    customerFirstName.eGainAttribute = "first_name";
+    if (nameGlobal != null && nameGlobal !== undefined) {
+        customerFirstName.eGainValue = nameGlobal.split(" ")[0];
+    } else {
+        customerFirstName.eGainValue = 'Customer';
+    }
+    customerFirstName.eGainParamName = "first_name";
+    customerFirstName.eGainMinLength = "1";
+    customerFirstName.eGainMaxLength = "50";
+    customerFirstName.eGainRequired = "1";
+    customerFirstName.eGainFieldType = "1";
+    customerFirstName.eGainPrimaryKey = "0";
+    customerFirstName.eGainValidationString = "";
+    customerObject.AddCustomerParameter(customerFirstName);
+
+    var customerLastName = new myLibrary_gosi.Datatype.CustomerParameter();
+    customerLastName.eGainParentObject = "casemgmt";
+    customerLastName.eGainChildObject = "activity_data";
+    customerLastName.eGainAttribute = "national_id";
+    if (idGlobal != null) {
+        customerLastName.eGainValue = idGlobal;
+    }
+    customerLastName.eGainParamName = "national_id";
+    customerLastName.eGainMinLength = "1";
+    customerLastName.eGainMaxLength = "250";
+    customerLastName.eGainRequired = "1";
+    customerLastName.eGainFieldType = "1";
+    customerLastName.eGainPrimaryKey = "0";
+    customerLastName.eGainValidationString = "";
+    customerObject.AddCustomerParameter(customerLastName);
+
+    var customerEmail = new myLibrary_gosi.Datatype.CustomerParameter();
+    customerEmail.eGainParentObject = "casemgmt";
+    customerEmail.eGainChildObject = "email_address_contact_point_data";
+    customerEmail.eGainAttribute = "email_address";
+    customerEmail.eGainValue = mail;
+
+    customerEmail.eGainParamName = "email_address";
+    customerEmail.eGainMinLength = "1";
+    customerEmail.eGainMaxLength = "50";
+    customerEmail.eGainRequired = "1";
+    customerEmail.eGainFieldType = "1";
+    customerEmail.eGainPrimaryKey = "1";
+    customerEmail.eGainValidationString = "";
+    customerObject.AddCustomerParameter(customerEmail);
+
+    var customerPhone = new myLibrary_gosi.Datatype.CustomerParameter();
+    customerPhone.eGainParentObject = "casemgmt";
+    customerPhone.eGainChildObject = "phone_number_data";
+    customerPhone.eGainAttribute = "phone_number";
+    customerPhone.eGainValue = '012345678';
+    customerPhone.eGainParamName = "phone_number";
+    customerPhone.eGainMinLength = "1";
+    customerPhone.eGainMaxLength = "18";
+    customerPhone.eGainRequired = "1";
+    customerPhone.eGainFieldType = "1";
+    customerPhone.eGainPrimaryKey = "0";
+    customerPhone.eGainValidationString = "";
+    customerObject.AddCustomerParameter(customerPhone);
+
+    var SkillGroup = new myLibrary_gosi.Datatype.CustomerParameter();
+    SkillGroup.eGainParentObject = "casemgmt";
+    SkillGroup.eGainChildObject = "activity_data";
+    SkillGroup.eGainAttribute = "gosi_skill_group";
+    SkillGroup.eGainValue = 'GOSI_Chat';
+    SkillGroup.eGainParamName = "gosi_skill_group";
+    SkillGroup.eGainMinLength = "1";
+    SkillGroup.eGainMaxLength = "20";
+    SkillGroup.eGainRequired = "1";
+    SkillGroup.eGainFieldType = "1";
+    SkillGroup.eGainPrimaryKey = "0";
+    SkillGroup.eGainValidationString = "";
+    customerObject.AddCustomerParameter(SkillGroup);
+    myLibrary_gosi.SetCustomer(customerObject);
+	if(idGlobal !=null && idGlobal !=''){
+		myChat_gosi.Start();
+	}
+}
+
