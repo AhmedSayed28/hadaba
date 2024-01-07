@@ -1,0 +1,1116 @@
+const PPA_BASE_URL = 'https://www.pension.gov.sa/';
+const Mobile_App = PPA_BASE_URL + '/MobileApp';
+const More_Information = 'https://ppa.pension.gov.sa/6j6aHVcq';
+const PPAKiosk = PPA_BASE_URL + '/ContactUs/PPAKiosk';
+const ServiceDetails = PPA_BASE_URL + 'ServiceDetails/8a195e21-f014-45ee-9af9-1b66c9cc0244';
+const PensionRules_civil_Settlement = PPA_BASE_URL + 'PensionRules/Civil/Pensionsettlement';
+const PensionRules_Military_Pensionsettlement = PPA_BASE_URL + 'PensionRules/Military/Settlementbonus';
+const GetPensionerFinancialData_URL = 'GetPensionerFinancialData';
+const GetPensionerDeductionData_URL = 'GetPensionerDeductionData';
+const GetPensionerRequest_URL = 'GetPensionerRequest';
+const GetBenPenReq = 'GetBenPenReq';
+const GetAegPenReq = 'GetAegPenReq';
+const GetPensionerServicesData_URL = 'GetPensionerServicesData';
+const GetAgentFinancialData_URL = 'GetAgentFinancialData';
+const GetBeneficiaryFinancialData_URL = 'GetBeneficiaryFinancialData';
+const CheckBeneficiaryRelationWithPensioner_URL = 'CheckBeneficiaryRelationWithPensioner';
+const CheckAgentRelationWithPensioner_URL = 'CheckAgentRelationWithPensioner';
+var showGOSI = false;
+var inImportantService = false;
+var pensionObject = {};
+
+const btcAppConfig_ppa = getPPAConfig();
+
+const ppabtcLogger = initBtcLogger(webChatID, btcLogLevel.DEBUG, btcLogType.CONSOLE_LOG);
+var myLibrarySettings_ppa = new eGainLibrarySettings();
+
+myLibrarySettings_ppa.CORSHost = btcAppConfig_ppa.btc_ece_fqdn + '/system/';
+myLibrarySettings_ppa.eGainContextPath = '/system/templates/chat/' + btcAppConfig_ppa.btc_ece_template + '/';
+myLibrarySettings_ppa.IsDevelopmentModeOn = false;
+myLibrarySettings_ppa.customMsgPath = btcAppConfig_ppa.btc_custom_msg;
+
+var myLibrary_ppa = new eGainLibrary(myLibrarySettings_ppa);
+var myChat_ppa = new myLibrary_ppa.Chat();
+var ppaEventHandlers = myChat_ppa.GetEventHandlers();
+
+ppaEventHandlers.OnConnectSuccess = function(ChatConnectEventArgs) {
+    localStorage.setItem('fcc_requestId', ChatConnectEventArgs.RequestID);
+    localStorage.setItem('fcc_sessionId', ChatConnectEventArgs.SessionID);
+    localStorage.setItem('fcc_activityId', ChatConnectEventArgs.ChatID);
+    localStorage.setItem('fcc_emailAddress', document.getElementById("emailAddress").value);
+
+    this.myRequestID = ChatConnectEventArgs.RequestID;
+    this.mySessionID = ChatConnectEventArgs.SessionID;
+    this.myActivityID = ChatConnectEventArgs.ChatID;
+};
+
+ppaEventHandlers.OnConnectionFailure = function(args) {
+    localStorage.removeItem("fcc_sessionId");
+    localStorage.removeItem("fcc_requestId");
+
+
+    agentName = agentJoinedEventArgs.AgentName;
+    var namesArray = agentName.split(" ");
+    var fName = namesArray[0];
+    appendAgentChat('نأسف. حدث خطأ ما ، الرجاء المحاولة مرة أخرى');
+
+};
+
+ppaEventHandlers.OnAgentMessageReceived = function(agentMessageReceivedEventArgs) {
+    const chat_msg = agentMessageReceivedEventArgs.Message;
+    appendAgentChat(chat_msg);
+};
+
+ppaEventHandlers.OnAgentsNotAvailable = function(agentsNotAvailableEventArgs) {
+    localStorage.removeItem("fcc_sessionId");
+    localStorage.removeItem("fcc_requestId");
+
+    appendAgentChat('عفواً ، لا يوجد ممثل خدمة عملاء متاح للرد الآن.');
+
+};
+
+ppaEventHandlers.OnConnectionComplete = function() {
+
+
+    $("#sendchat_txt").prop('disabled', true);
+    $("#sendtext_btn").prop('disabled', true);
+
+
+    const session = this;
+    try {
+        const surveyURL = btcAppConfig_ppa.btc_survey_fqdn + "?ACTIVITY_ID=" + session.myActivityID;
+    } catch (e) {
+        return;
+    }
+    if (localStorage.getItem('fcc_sessionId') != null) {
+        var NoMsg = '<span>تم انهاء المحادثة. إذا كان لديك أسئلة أو استفسارات أخرى، تواصل معنا مرة أخرى وسنسعد بخدمتك</span><br/>';
+        NoMsg += '<div>';
+        NoMsg += '<input class="btn button_cutom" type="button" value="انهاء وتقييم" onclick="endAndGotoEval()" id="genericNoBtn"/>';
+        NoMsg += '</div>';
+        appendAgentChat(NoMsg);
+    }
+
+};
+
+ppaEventHandlers.OnConnectionInitialized = function(evt) {
+    const available = evt.checkEligibility.responseType;
+    if (available === 0) {
+
+        var sessionId = localStorage.getItem('fcc_sessionId');
+        var requestID = localStorage.getItem('RequestID');
+
+        if (sessionId != null && requestID != null) {
+            myChat_ppa.Attach(sessionId, requestID);
+
+        } else {
+            allchatConv = localStorage.getItem("fcc_chatConv");
+            localStorage.removeItem("fcc_chatConv");
+            localStorage.removeItem("fcc_activityId");
+            localStorage.removeItem("fcc_emailAddress");
+            startPPAConversion();
+        }
+
+    } else {
+        localStorage.removeItem("fcc_sessionId");
+        localStorage.removeItem("fcc_requestId");
+
+        appendAgentChat('عفواً ، لا يوجد ممثل خدمة عملاء متاح للرد الآن.');
+
+    }
+
+};
+
+ppaEventHandlers.OnAgentJoined = function(agentJoinedEventArgs) {
+    agentName = agentJoinedEventArgs.AgentName;
+    var namesArray = agentName.split(" ");
+    var fName = namesArray[0];
+
+    appendAgentChat('مرحبا بك ، معك ' + fName + 'تفضل كيف أقدر أخدمك');
+};
+
+ppaEventHandlers.OnCustomerAttachmentNotificationSent = function(eventArgs) {
+
+    appendCustomerChat('ملف مرفق.');
+
+};
+
+ppaEventHandlers.OnAttachmentAcceptedByAgent = function(eventArgs) {
+
+    appendAgentChat('تم قبول الملف المرفق.');
+
+
+    const input = $('#fileattachment')[0]
+
+    if (input.files && input.files[0]) {
+        file = input.files[0];
+
+
+        appendCustomerChat('جارٍ تحميل الملف المرفق ...');
+
+
+        myChat_ppa.UploadAttachment(file, window.agentName);
+    }
+};
+
+ppaEventHandlers.OnAttachmentRejectedByAgent = function(eventArgs) {
+
+    appendAgentChat('تم رفض الملف المرفق ، الرجاء المحاولة مرة آخرى.');
+
+
+};
+
+ppaEventHandlers.OnAttachmentUploadedByCustomer = function(eventArgs) {
+
+    appendAgentChat('تم استلام الملف بنجاح.');
+
+};
+
+ppaEventHandlers.OnConnectionAttached = function() {
+    var chatConv = localStorage.getItem('fcc_chatConv');
+    document.getElementById("chat-conv").innerHTML = chatConv;
+};
+
+ppaEventHandlers.OnAttachmentInviteReceived = function(eventArgs) {
+
+    var ArgsJSON = JSON.stringify(eventArgs);
+    var obj = JSON.parse(ArgsJSON);
+
+    var fileId = obj["Attachment"]["Id"];
+
+
+    appendAgentChat('تم إرفاق الملف ، يرجى التحقق من الملف الذي تم تنزيله.');
+
+
+    myChat_ppa.GetArticleAttachment(fileId);
+};
+ppaEventHandlers.OnCustTerminateSuccess = function() {
+
+};
+ppaEventHandlers.OnSystemMessageReceived = function(systemMessageReceivedEventArgs) {
+
+};
+ppaEventHandlers.OnErrorOccurred = function(chatErrorOccurredEventArgs) {
+
+};
+ppaEventHandlers.OnConnectionAttachedFailure = function() {
+
+};
+ppaEventHandlers.OnDuplicateSession = function(evts) {
+
+};
+
+function getPPAConfig() {
+
+    var appConfig = {};
+
+    appConfig.btc_ece_fqdn = LiveChat_URL;
+    appConfig.btc_ece_template = "chat-demo-docked-UAT";
+    appConfig.btc_ece_endpoint = appConfig.btc_ece_fqdn + "/system/templates/chat/" + appConfig.btc_ece_template + "/chat_client.html";
+    appConfig.btc_ece_chatpoint = LiveChat_Port;
+    appConfig.btc_custom_msg = '';
+    appConfig.btc_survey_fqdn = "https://fcccwewvp01.gosi.ins/system/templates/chat/" + appConfig.btc_ece_template + "/survey/sample_survey.html";
+
+    appConfig.btc_logserver_transport = "http://";
+    appConfig.btc_logserver_ipaddr = "localhost";
+    appConfig.btc_logserver_port = "7860";
+    appConfig.btc_logserver_endpoint = appConfig.btc_logserver_transport + appConfig.btc_logserver_ipaddr + ":" + appConfig.btc_logserver_port;
+
+    appConfig.btc_imgdir = "img/";
+    appConfig.btc_imgdir = "css/";
+
+    return appConfig;
+
+}
+
+function generateUserTypesLinksPPA() {
+
+    var btn = '<span>اضغط على نوع المستخدم الي حاب تستفسر عنه</span><br/>';
+    userTypesList.forEach((item, index) => {
+        btn += '<input class="btn button_cutom" type="button" onclick="selectMenu(this,\'PPA\')" value="' + item.label + '"+ id="' + index + '_btn"/>';
+    });
+	if(userRole === 'SINGLE' && !showGOSI){
+		showGOSI = true;
+		btn += '<a id="gosi-btn" class="linkBtn" onclick="startNLUChat(\'Gosi\')" target="_blank">نظام التأمينات</a><br/>';
+	}
+    appendAgentChat(btn);
+}
+
+function selectMenuPPA(user) {
+    generateUserTypeMenu(user);
+}
+
+function generateUserTypeMenu(user) {
+    if (user.type == 'Pensioner') {
+        pensionerMenu();
+    } else if (user.type == 'Agent') {
+        AgentMenu();
+    } else if (user.type == 'Beneficiary') {
+        beneficiaryMenu();
+    } else if (user.type == 'Subscriber') {
+        SubscriberMenu();
+    } else {
+        createGenWelcomeMsg(user, user)
+    }
+
+
+}
+function PPA_MainMenu() {
+    inImportantService = false;
+    var menuMsg = '';
+    menuMsg += '<div><strong style="color:#000">اختر</strong> من القائمة الخدمة اللي ودك تستفسر عنها </div><br/>';
+    menuMsg += '<a class="linkBtn" onclick="PPA_servicesMenu()" target="_blank">الاسئلة الشائعة</a><br/>';
+    menuMsg += '<a class="linkBtn" onclick="PPA_ImportantServices(this)" target="_blank">الخدمات الذاتية</a><br/>';
+		if(userRole === 'SINGLE' && !showGOSI){
+		showGOSI = true;
+		menuMsg += '<a id="gosi-btn" class="linkBtn" onclick="startNLUChat(\'Gosi\')" target="_blank">نظام التأمينات</a><br/>';
+		
+	}
+    appendAgentChat(menuMsg);
+}
+
+function PPA_servicesMenu() {
+    appendCustomerChat('الاسئلة الشائعة');
+    inImportantService = false;
+    var PPA_Choices = '';
+    PPA_Choices += '<label><strong style="color:#000">الرجاء تحديد الخدمة التي ترغب الاستفسار عنها</strong></label><br/>';
+    PPA_Choices += '<a class="linkBtn" onclick="PPA_1()" target="_blank">معاشات المتقاعدين</a><br/>';
+    PPA_Choices += '<a class="linkBtn" onclick="PPA_2()" target="_blank">احتساب الخدمة</a><br/>';
+    PPA_Choices += '<a class="linkBtn" onclick="PPA_3()" target="_blank">المستفيدون من المعاش</a><br/>';
+    PPA_Choices += generatePPAServiceMenuBtn();
+    appendAgentChat(PPA_Choices);
+    sendToBot('faq_ppa');
+    $("#sendchat_txt").prop('disabled', false);
+    $("#sendtext_btn").prop('disabled', false);
+    $('#sendchat_txt').focus();
+    showFeedback = true;
+}
+
+
+
+function PPA_ImportantServices(x) {
+    tagName = x.textContent;
+    appendCustomerChat(tagName);
+    inImportantService = true;
+    $("#sendchat_txt").prop('disabled', false);
+    $("#sendtext_btn").prop('disabled', false);
+    $('#sendchat_txt').focus();
+    sendToBot('PPAstart');
+    // if (loggedUser == undefined && userTypesList.length == 0) {
+    //     $("#sendchat_txt").prop('disabled', false);
+    //     $("#sendtext_btn").prop('disabled', false);
+    //     $('#sendchat_txt').focus();
+    //     sendToBot('PPAstart');
+    // } else {
+    //     if (userTypesList.length > 1) {
+    //         generateUserTypesLinks();
+    //         return;
+    //     } else if (loggedUser != undefined) {
+    //         generateUserTypeMenu(loggedUser);
+    //         return;
+    //     }
+    // }
+}
+
+function pensionerMenu() {
+    var msg = '';
+    msg += '<label>' + '<strong style="color:#000">اختر من القائمة الخدمة اللي ودك تستفسر عنها أو اكتب استفسارك مباشرة</strong>' + '</label>' + '<br>';
+   
+	msg += '<a class="linkBtn" onclick="pensionerStatus(1)" target="_blank">حالة المعاملة</a><br/>';
+    msg += '<a class="linkBtn" onclick="pensionFinancial()" target="_blank">المعاش التقاعدي</a><br/>';
+    msg += '<a class="linkBtn" onclick="pensionerDeduction()" target="_blank">حسميات المعاش</a><br/>';
+    msg += '<a class="linkBtn" onclick="pensionerVirtualCard()" >بطاقة المتقاعد</a><br/>';
+    msg += '<a class="linkBtn" onclick="printPensionCert(\'تعريف بالمعاش\')" >تعريف بالمعاش</a><br/>';
+    msg += '<a class="linkBtn" onclick="printPensionCert(\'تعريف المعاش برقم الحساب\')" >تعريف المعاش برقم الحساب</a><br/>';
+    msg += '<a class="linkBtn" onclick="printPensionCert(\'تعريف المعاش بالحسميات\')" >تعريف المعاش بالحسميات</a><br/>';
+    msg += '<a class="linkBtn" onclick="printPensionCert(\'تعريف بتاريخ التقاعد\')" >تعريف بتاريخ التقاعد</a><br/>';
+    msg += generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function beneficiaryMenu() {
+    var msg = '';
+    msg += '<label>' + '<strong style="color:#000">اختر من القائمة الخدمة اللي ودك تستفسر عنها أو اكتب استفسارك مباشرة</strong>' + '</label>' + '<br>';
+   
+	msg += '<a class="linkBtn" onclick="pensionerStatusForBen(2)" target="_blank">حالة المعاملة</a><br/>';
+    msg += '<a class="linkBtn" onclick="beneficiaryFinancial()" target="_blank">المعاش التقاعدي</a><br/>';
+    msg += generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function AgentMenu() {
+    var msg = '';
+    msg += '<label>' + '<strong style="color:#000">اختر من القائمة الخدمة اللي ودك تستفسر عنها أو اكتب استفسارك مباشرة</strong>' + '</label>' + '<br>';
+   
+	msg += '<a class="linkBtn" onclick="pensionerStatusForAgent(3)" target="_blank">حالة المعاملة</a><br/>';
+    msg += '<a class="linkBtn" onclick="AgentFinancial()" target="_blank">المعاش التقاعدي</a><br/>';
+    msg += generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function SubscriberMenu() {
+    var msg = '';
+    msg += '<label>' + '<strong style="color:#000">اختر من القائمة الخدمة اللي ودك تستفسر عنها أو اكتب استفسارك مباشرة</strong>' + '</label>' + '<br>';
+    
+	msg += '<a class="linkBtn" onclick="pensionerStatus(4)" target="_blank">حالة المعاملة</a><br/>';
+    msg += generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function pensionerStatus(type) {
+    executeRasaApi(GetPensionerRequest_URL, function(data) {
+        try {
+            if (data[0].custom !== undefined) {
+                if (data[0].custom.CurrentObject !== undefined) {
+                    serviceFailure = false;
+                    var obj = data[0].custom.CurrentObject[0];
+                    pensionObject.RequestNumber = obj.RequestNumber;
+                    pensionObject.date = obj.RequestDate;
+                    pensionObject.status = obj.Status;
+
+                } else {
+                    serviceFailure = true;
+                }
+            } else {
+                serviceFailure = true;
+            }
+        } catch (error) {
+            serviceFailure = true;
+        }
+        generatePensionerStatusMSG(type);
+    });
+}
+
+function pensionerStatusForBen(type) {
+    executeRasaApi(GetBenPenReq, function(data) {
+        try {
+            if (data[0].custom !== undefined) {
+                if (data[0].custom.PensionBenReq !== undefined) {
+                    serviceFailure = false;
+                    var obj = data[0].custom.PensionBenReq.CurrentObject[0];
+                    pensionObject.RequestNumber = obj.RequestNumber;
+                    pensionObject.date = obj.RequestDate;
+                    pensionObject.status = obj.Status;
+
+                } else {
+                    serviceFailure = true;
+                }
+            } else {
+                serviceFailure = true;
+            }
+        } catch (error) {
+            serviceFailure = true;
+        }
+        generatePensionerStatusMSG(type);
+    });
+}
+
+function pensionerStatusForAgent(type) {
+    executeRasaApi(GetAegPenReq, function(data) {
+        try {
+            if (data[0].custom !== undefined) {
+                if (data[0].custom.PensionAegReq !== undefined) {
+                    serviceFailure = false;
+                    var obj = data[0].custom.PensionAegReq.CurrentObject[0];
+                    pensionObject.RequestNumber = obj.RequestNumber;
+                    pensionObject.date = obj.RequestDate;
+                    pensionObject.status = obj.Status;
+
+                } else {
+                    serviceFailure = true;
+                }
+            } else {
+                serviceFailure = true;
+            }
+        } catch (error) {
+            serviceFailure = true;
+        }
+        generatePensionerStatusMSG(type);
+    });
+}
+
+function generatePensionerStatusMSG(type) {
+    appendCustomerChat('حالة المعاملة');
+    var msg = '';
+    if (serviceFailure) {
+        msg += '<span>عفواً لا يوجد بيانات مسجلة لدينا لرقم الهوية الوطنية المدخل، فضلا أكتب <strong>مساعدة</strong> لتحويلك لممثل خدمة العملاء</span><br/>'
+    } else {
+        msg += '<span>تفضل بالاطلاع على تفاصيل حالة المعاملة الخاصة بـك:</span><br/>';
+        msg += '<label>رقم المعامله: <strong>' + pensionObject.RequestNumber + '</strong></label><br/>';
+        msg += '<label>التاريخ: <strong>' + pensionObject.date + '</strong></label><br/>';
+        msg += '<label>الحالة: <strong>' + pensionObject.status + '</strong></label><br/>';
+    }
+    var returnMenuStr = '';
+    if (type == 1) {
+        returnMenuStr = 'pensionerMenu()';
+    } else if (type == 2) {
+        returnMenuStr = 'beneficiaryMenu()';
+    } else if (type == 3) {
+        returnMenuStr = 'AgentMenu()';
+    } else if (type == 4) {
+        returnMenuStr = 'SubscriberMenu()';
+    }
+    msg += goTOPrevMenu(returnMenuStr) + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function pensionFinancial() {
+    return executeRasaApi(GetPensionerFinancialData_URL, function(data) {
+        try {
+            if (data[0].custom !== undefined) {
+                if (data[0].custom.PenisionerName !== undefined && data[0].custom.PensionerFinancial !== undefined) {
+                    serviceFailure = false;
+                    pensionObject.penValue = data[0].custom.PensionerFinancial.PensionAmount;
+                    pensionObject.PensionName = data[0].custom.PenisionerName;
+
+                } else {
+                    serviceFailure = true;
+                }
+            } else {
+                serviceFailure = true;
+            }
+        } catch (error) {
+            serviceFailure = true;
+        }
+        pensionFinancialMSG();
+    });
+}
+
+function pensionFinancialMSG() {
+    appendCustomerChat('المعاش التقاعدي');
+    var msg = '';
+    var value = pensionObject.penValue == null ? 0 : pensionObject.penValue;
+    if (serviceFailure || value == 0) {
+        msg += '<span>نأسف حدث خطأ أثناء استرجاع البيانات الخاصة بكم، فضلا أكتب <strong> مساعدة </strong> لتحويلك لممثل خدمة العملاء</span><br/>'
+    } else {
+        msg += '<span> يتم احتساب المعاش التقاعدي الخاص ب</span>';
+        msg += '<label><strong> ' + pensionObject.PensionName + '<strong> بقيمه ' + value + ' رس </strong></label><br/>';
+    }
+    msg += goTOPrevMenu('pensionerMenu()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function pensionerDeduction() {
+    serviceFailure = true;
+    pensionObject.pensionerDeduction = {};
+    return executeRasaApi(GetPensionerDeductionData_URL, function(data) {
+        try {
+            if (data[0].custom !== undefined) {
+                if (data[0].custom.CurrentObject !== undefined && data[0].custom.CurrentObject.length > 0) {
+                    serviceFailure = false;
+                    obj = data[0].custom.CurrentObject[0];
+                    pensionObject.pensionerDeduction.name = obj.Name;
+                    pensionObject.pensionerDeduction.DeductionTypeName = obj.DeductionTypeName;
+                    pensionObject.pensionerDeduction.monthlyInstallment = obj.StartAmount;
+                    pensionObject.pensionerDeduction.finalValue = obj.EndAmount;
+                    pensionObject.pensionerDeduction.TotalAmount = obj.TotalAmount;
+                    pensionObject.pensionerDeduction.startDate = obj.DeductionStartDate;
+                    pensionObject.pensionerDeduction.endDate = obj.DeductionEndDate;
+                } else {
+                    serviceFailure = true;
+                }
+            } else {
+                serviceFailure = true;
+            }
+
+        } catch (error) {
+            serviceFailure = true;
+        }
+        pensionerDeductionMSG();
+    });
+}
+
+function pensionerDeductionMSG() {
+    appendCustomerChat('حسميات المعاش');
+    var msg = '';
+    if (serviceFailure) {
+        msg += '<span>عفواً لا يوجد بيانات مسجلة لدينا لرقم الهوية الوطنية المدخل، فضلا أكتب <strong>مساعدة</strong> لتحويلك لممثل خدمة العملاء</span><br/>'
+    } else {
+        msg += '<span>تفضل بالاطلاع على تفاصيل حسميات المعاش الخاص بـك:ـ</span><br/>';
+        msg += '<label>الحسميات الخاصة ب <strong>' + pensionObject.pensionerDeduction.name + '</strong></label><br/>';
+        msg += '<label>نوع الحسمية <strong>' + pensionObject.pensionerDeduction.DeductionTypeName + '</strong></label><br/>';
+        msg += '<label>القسط الشهري <strong>' + pensionObject.pensionerDeduction.monthlyInstallment + '</label><br/>';
+        msg += '<label>القيمة النهائى <strong>' + pensionObject.pensionerDeduction.finalValue + '</strong></label><br/>';
+        msg += '<label>القيمة الكلية <strong>' + pensionObject.pensionerDeduction.TotalAmount + '</strong></label><br/>';
+        msg += '<label>تاريخ الابتداء <strong>' + pensionObject.pensionerDeduction.startDate + '</strong></label><br/>';
+        msg += '<label>تاريخ الانتهاء <strong>' + pensionObject.pensionerDeduction.endDate + '</strong></label><br/>';
+    }
+    msg += goTOPrevMenu('pensionerMenu()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function beneficiaryFinancial() {
+    return executeRasaApi(GetBeneficiaryFinancialData_URL, function(data) {
+        try {
+            if (data[0].custom !== undefined) {
+                var penInfo = data[0].custom.PensionInformation;
+                var financial = data[0].custom.BenFinancial.PensionAmount;
+                if (financial !== undefined) {
+                    serviceFailure = false;
+                    pensionObject.Nin = penInfo.PensionCivilId
+                    pensionObject.penValue = financial;
+
+                } else {
+                    serviceFailure = true;
+                }
+            } else {
+                serviceFailure = true;
+            }
+        } catch (error) {
+            serviceFailure = true;
+        }
+        beneficiaryFinancialMSG();
+
+    });
+}
+
+function beneficiaryFinancialMSG() {
+    appendCustomerChat('المعاش التقاعدي');
+    var msg = '';
+    var value = pensionObject.penValue == null ? 0 : pensionObject.penValue;
+    if (serviceFailure || value == 0) {
+        msg += '<span>نأسف حدث خطأ أثناء استرجاع البيانات الخاصة بكم، فضلا أكتب <strong> مساعدة </strong> لتحويلك لممثل خدمة العملاء</span><br/>'
+    } else {
+        msg += '<span> يتم احتساب المعاش التقاعدي الخاص ب</span>';
+        msg += '<label><strong>' + pensionObject.Nin + ' بقيمه ' + value + ' رس </strong></label><br/>';
+    }
+    msg += goTOPrevMenu('beneficiaryMenu()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+
+}
+
+function AgentFinancial() {
+
+    return executeRasaApi(GetAgentFinancialData_URL, function(data) {
+        try {
+            if (data[0].custom !== undefined) {
+                var penInfo = data[0].custom.PensionInformation;
+                var financial = data[0].custom.AegFinancial.PensionAmount;
+                if (financial !== undefined) {
+                    serviceFailure = false;
+                    pensionObject.Nin = penInfo.PensionCivilId
+                    pensionObject.penValue = financial;
+
+                } else {
+                    serviceFailure = true;
+                }
+            } else {
+                serviceFailure = true;
+            }
+        } catch (error) {
+            serviceFailure = true;
+        }
+        AgentFinancialMSG();
+
+    });
+
+}
+
+function AgentFinancialMSG() {
+    appendCustomerChat('المعاش التقاعدي');
+    var msg = '';
+    var value = pensionObject.penValue == null ? 0 : pensionObject.penValue;
+    if (serviceFailure || value == 0) {
+        msg += '<span>نأسف حدث خطأ أثناء استرجاع البيانات الخاصة بكم، فضلا أكتب <strong> مساعدة </strong> لتحويلك لممثل خدمة العملاء</span><br/>'
+    } else {
+        msg += '<span> يتم احتساب المعاش التقاعدي الخاص ب</span>';
+        msg += '<label><strong>' + pensionObject.Nin + ' بقيمه ' + value + ' رس </strong></label><br/>';
+    }
+    msg += goTOPrevMenu('AgentMenu()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1() {
+    var msg = '';
+    appendCustomerChat('معاشات المتقاعدين');
+    msg += '<label><strong style="color:#000">عن أي من خدمات المتقاعدين ترغب في الاستفسار؟</strong></label><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_1()" target="_blank">نظام التقاعد المدني</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_2()" target="_blank">أنظمة التقاعد</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_3()" target="_blank">الحسميات المالية</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_4()" target="_blank">البطاقة التعريفية التقاعدية</a><br/>';
+    msg += goTOPrevMenu('PPA_servicesMenu()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_1() {
+    var msg = '';
+    appendCustomerChat('نظام التقاعد المدني');
+    msg += '<label><strong style="color:#000">عن أي من خدمات المتقاعدين ترغب في الاستفسار؟</strong></label><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_1_1()" target="_blank">إجراءات العودة للعمل</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_1_2()" target="_blank">الجمع بين المعاش التقاعدي ووظيفة</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_1_3()" target="_blank">تقديم طلب تقاعد </a><br/>';
+    msg += goTOPrevMenu('PPA_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_2() {
+    var msg = '';
+    appendCustomerChat('أنظمة التقاعد');
+    msg += '<label><strong style="color:#000">الرجاء تحديد الخدمة التي ترغب الاستفسار عنها</strong></label><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_2_1()" target="_blank">الحقوق والإجازات والبدلات</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_2_2()" target="_blank">إيقاف المعاش التقاعدي</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_2_3()" target="_blank">الإستلام بوكالة شرعية</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_1_2_4()" target="_blank">زيادة المعاش التقاعدي</a><br/>';
+    msg += goTOPrevMenu('PPA_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_3() {
+    appendCustomerChat('الحسميات المالية');
+    var msg = '<span>يتم الحسم بناء على الأنظمة والتعليمات بشأن تحصيل أموال الدولة وأهمها نظام إيرادات الدولة.</span><br/>';
+    msg += goTOPrevMenu('PPA_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_4() {
+    appendCustomerChat('البطاقة التعريفية التقاعدية');
+    var msg = '<span><strong>يمكنك الحصول على البطاقة التعريفية من خلال الخدمات الالكترونية :</strong></span><br/>';
+    msg += '<span>- لاصدار البطاقة الالكترونية <a href="' + Mobile_App + '" target="_blank">تحميل تطبيق</a> التقاعد للهواتف الذكية</span><br/>';
+    msg += '<span>- لاصدار البطاقة التعريفية من خلال <a href="' + PPAKiosk + '" target="_blank">أجهزة الخدمة الذاتية</a></span><br/>';
+    msg += '<span>- علماً أن البطاقة التقاعدية الالكترونية تصدر للمتقاعد و المتقاعدة و المستفيدين من معاش المتقاعد المتوفى.</span><br/>';
+    msg += goTOPrevMenu('PPA_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_1_1() {
+    appendCustomerChat('إجراءات العودة للعمل');
+    var msg = '<span><strong>إجراءات العودة للعمل الحكومي:</strong></span><br/>';
+    msg += '<span>يتم ذلك عم طريق تزويد المؤسسة بقرار التعيين والمباشرة، وبعد ذلك يتم إيقاف المعاش التقاعدي لحين انتهاء علاقة المتقاعد بالعمل الحالي، والمطالبة بسداد المبالغ المصروفة بغير وجه حق - ان وجدت - عن طريق إدارة الإيرادات والتحصيل.</span><br/>';
+    msg += goTOPrevMenu('PPA_1_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_1_2() {
+    appendCustomerChat('الجمع بين المعاش التقاعدي ووظيفة');
+    var msg = '<span><strong>بالنسبة الى الوظيفة الخاضعة لنظام التأمينات الاجتماعية:</strong></span><br/>';
+    msg += '<span>لا تؤثر الوظيفة على استحقاق المعاش التقاعدي.</span><br/>';
+    msg += '<span><strong>بالنسبة الى الوظيفة الخاضعة لنظام التقاعد المدني:</strong></span><br/>';
+    msg += '<span>لا يجوز الجمع بين معاش التقاعدي والوظيفة الخاضعة لنظام التقاعد.</span><br/>';
+    msg += goTOPrevMenu('PPA_1_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_1_3() {
+    appendCustomerChat('تقديم طلب تقاعد ');
+    var msg = '<span><strong>يتم ارسال المستندات من خلال المرجع الوظيفي للمشترك الذي توفرت لديه شروط الاستحقاق للمعاش التقاعدي ويستحق معاشًا تقاعديًا كل من توافرت في شأنه الحالات الآتية:</strong></span><br/>';
+    msg += '<span>- بمجرد بلوغ الموظف المدني سن الـ 60 عاما، واكماله فترة التجربة المنصوص عليها في انظمة الخدمة المدنية، فانه يستحق معاشا مهما كانت مدة خدمته.</span><br/>';
+    msg += '<span>- المتوفى أو المفصول بسبب عجزة عن العمل بصورة قطعية يستحق معاشاً مهما تكن مدة الخدمة بنسبة 40% من أخر راتب أساسي تقاضاه عند الوفاة أو العجز أو المعاش المستحق عن مدة خدمته الفعلية أيهما أكبر.</span><br/>';
+    msg += '<span>- من انتهت خدمته بسبب إلغاء الوظيفة أو الفصل بقرار من مجلس الوزراء، أو بأمر سام وبغير سبب تأديبي، فيستحق معاشا متى بلغت مدة خدمته المحسوبة في التقاعد خمسة عشر سنة على الأقل.</span><br/>';
+    msg += '<span>- من انتهت خدمته لأي سبب كان ، ولديه خدمة 25 سنة فما فوق.<span><br/>';
+    msg += '<span>- المتوفى أو العاجز أثناء العمل وبسببه يستحق معاشاً بنسبة 80% من أخر راتب أساسي تقاضاه أو عن مدة الخدمة أيهما أكبر.<span><br/>';
+    msg += goTOPrevMenu('PPA_1_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+
+function PPA_1_2_1() {
+    appendCustomerChat('الحقوق والإجازات والبدلات');
+    var msg = '<span>الحقوق والإجازات والبدلات تكون من اختصاص جهة العمل السابقة قبل التقاعد.</span><br/>';
+    msg += goTOPrevMenu('PPA_1_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_2_2() {
+    appendCustomerChat('إيقاف المعاش التقاعدي');
+    var msg = '<span><strong>يتم إيقاف المعاش التقاعدي لكل من توافرت فى شأنه الحالات الآتية:</strong></span><br/>';
+    msg += '<span>- شغل إحدى المراتب في الميزانية العامة للدولة.</span><br/>';
+    msg += '<span>- استحقاق معاش تقاعدي أكبر.</span><br/>';
+    msg += '<span>- و يتم حرمان المتقاعد أو المستحق من المعاش إذا تجنس بغير الجنسية السعودية، و لا يسري هذا الحكم على الزوجة غير السعودية.</span><br/>';
+    msg += goTOPrevMenu('PPA_1_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_2_3() {
+    appendCustomerChat('الإستلام بوكالة شرعية');
+    var msg = '<span>لا يمكن توكيل شخص اخر لاستلام المعاش التقاعدي.</span><br/>';
+    msg += goTOPrevMenu('PPA_1_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_1_2_4() {
+    appendCustomerChat('زيادة المعاش التقاعدي');
+    var msg = '<span>بناء على أنظمة ولوائح المؤسسة، لا يوجد علاوات سنوية ولا يتم زيادة المعاش، إلا بأمر ملكي.</span><br/>';
+    msg += goTOPrevMenu('PPA_1_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2() {
+    var msg = '';
+    appendCustomerChat('احتساب الخدمة');
+    msg += '<label><strong style="color:#000">اختر الخدمة المطلوبة</strong></label><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_1()" target="_blank">تسوية معاش المدنيين</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_2()" target="_blank">تسوية معاش العسكريين</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_3()" target="_blank">ضم خدمة التأمينات للمعاش التقاعدي</a><br/>';
+    msg += goTOPrevMenu('PPA_servicesMenu()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_1() {
+    var msg = '';
+    appendCustomerChat('تسوية معاش المدنيين');
+    msg += '<label><strong style="color:#000">تفقد طريقة احتساب المعاش التقاعدي للمدنيين للآتي:</strong></label><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_1_1()" target="_blank">العجز الطبى</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_1_2()" target="_blank">معاش المدنيين</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_1_3()" target="_blank">تصفية الخدمة</a><br/>';
+    msg += goTOPrevMenu('PPA_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_2() {
+    var msg = '';
+    appendCustomerChat('تسوية معاش العسكريين');
+    msg += '<label><strong style="color:#000">تفقد طريقة احتساب المعاش التقاعدي للعسكريين للآتي:</strong></label><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_2_1()" target="_blank">تصفية الخدمة</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_2_2()" target="_blank">معاش العسكريين</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_2_3()" target="_blank">العجز الطبي بسبب الحرب</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_2_4()" target="_blank">ضم الخدمة</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_2_2_5()" target="_blank">شهداء الحرب</a><br/>';
+    msg += goTOPrevMenu('PPA_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_3() {
+    appendCustomerChat('ضم خدمة التأمينات للمعاش التقاعدي');
+    var msg = '<span>يحق للمشترك الخاضع لنظام التقاعد المدني أو العسكري، وله مدة اشتراك سابقة خاضعة لنظام التأمينات الاجتماعية أو العكس، أن يطلب ضم تلك المدة إلى مدة اشتراكه في النظام الأخير.</span><br/>';
+    msg += goTOPrevMenu('PPA_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_1_1() {
+    appendCustomerChat('العجز الطبى');
+    var msg = '<span><strong>يتم احتساب المعاش التقاعدي للعجز الطبي كالآتي:</strong></span><br/>';
+    msg += '<span>يستحق 40% من آخر راتب أساسي ، اذا كان العجز بغير سبب العمل، وبسبب العمل يستحق 80% من أخر راتب أساسي.</span><br/>';
+    msg += goTOPrevMenu('PPA_2_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_1_2() {
+    appendCustomerChat('معاش المدنيين');
+    var msg = '<span><strong>يتم <a href="' + ServiceDetails + '" target="_blank">احتساب المعاش</a> التقاعدي كالآتي:</strong></span><br/>';
+    msg += '<span>المعاش التقاعدي المستحق = (الراتب الأساسي الأخير × مدة الخدمة بالأشهر ) ÷ 480 شهر</span><br/>';
+    msg += goTOPrevMenu('PPA_2_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_1_3() {
+    appendCustomerChat('تصفية الخدمة');
+    var msg = '';
+    msg += '<span>تصفية الخدمة تخضع لعدة حالات حسب سبب نهاية الخدمة، للاطلاع على المزيد من التفاصيل من .<a href="' + PensionRules_civil_Settlement + '" target="_blank">هنا</a>.</span><br/>';
+    msg += goTOPrevMenu('PPA_2_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_1_4() {
+    appendCustomerChat('عجز طبي بغير سبب العمل');
+    var msg = '<span><strong>يتم إحتساب معاش العجز الطبي أو الوفاة بغير سبب العمل كالآتي:</strong></span><br/>';
+    msg += '<span>يستحق 40% من آخر راتب، ما لم يكن مجموع خدماته يستحق عنها معاش اكبر</span><br/>';
+    msg += goTOPrevMenu('PPA_2_1()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_2_1() {
+    appendCustomerChat('تصفية الخدمة');
+    var msg = '';
+    msg += '<span>تصفية الخدمة تخضع لعدة حالات حسب سبب نهاية الخدمة ، للاطلاع على تفاصيل أكثر من <a href="' + PensionRules_Military_Pensionsettlement + '" target="_blank">هنا</a>.</span><br/>';
+    msg += goTOPrevMenu('PPA_2_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_2_2() {
+    appendCustomerChat('معاش المعسكريين');
+    var msg = '<span><strong>يتم <a href="' + ServiceDetails + '" target="_blank">احتساب المعاش</a> التقاعدي كالآتي:</strong></span><br/>';
+    msg += '<span>يسوى المعاش على أساس جزء من ٣٥ جزءاً من الراتب الأساسي الأخير الذي كان يتقاضاه العسكري على ألا يتجاوز المعاش مقدار هذا الراتب.</span><br/>';
+    msg += '<span>المعاش المستحق = (الراتب الأساسي الأخير × مدة الخدمة بالأشهر) ÷ ٤٢٠.</span><br/>';
+    msg += goTOPrevMenu('PPA_2_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_2_3() {
+    appendCustomerChat('العجز الطبي بسبب الحرب');
+    var msg = '<span><strong>يتم احتساب المعاش التقاعدي للعجز الطبي كالآتي:</strong></span><br/>';
+    msg += '<span>- يمنح العسكري المصاب بعجز كلي اثناء قيامه بعمله وبسببه نسبة 100% من آخر راتب كان يتقاضاه . </span><br/>';
+    msg += '<span>- ويمنح العسكري المصاب بعجز جزئي اثناء قيامه بعمله وبسببه نسبة 80% من راتبه الاخير.</span><br/>';
+    msg += '<span>أو على أساس خدمته المستحقة أيهما أصلح له.</span><br/>';
+    msg += goTOPrevMenu('PPA_2_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_2_4() {
+    appendCustomerChat('ضم الخدمة');
+    var msg = '<span><strong>يتم إحتساب المعاش التقاعدي بعد ضم الخدمة كلآتي:</strong></span><br/>';
+    msg += '<span>(أخر راتب تقاضاه عن خدمته العسكرية بنظام التقاعد × مجموع مدد الاشتراك بالأشهر عن النظامين) ÷420</span><br/>';
+    msg += goTOPrevMenu('PPA_2_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_2_2_5() {
+    appendCustomerChat('شهداء الحرب');
+    var msg = '<span><strong>يتم احتساب المعاش لشهداء الحرب كالآتي:</strong></span><br/>';
+    msg += '<span>يمنح الشهيد معاش تقاعدي يعادل اخر راتب في سلم الرواتب للرتبة التي تعلو رتبته مباشرة + البدلات تصرف من المقررات والقواعد.</span><br/>';
+    msg += goTOPrevMenu('PPA_2_2()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_3() {
+    var msg = '';
+    appendCustomerChat('المستفيدون من المعاش');
+    msg += '<label><strong style="color:#000">عن أي خدمة من خدمات المستفيدين ترغب في الاستفسار؟</strong></label><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_3_1()" target="_blank">استبعاد الإناث</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_3_2()" target="_blank">استبعاد الذكور</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_3_3()" target="_blank">الزوجة المتقاعدة /الموظفة</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_3_4()" target="_blank">الزوجة الأجنبية</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_3_5()" target="_blank">الجمع بين معاشين</a><br/>';
+    msg += '<a class="linkBtn" onclick="PPA_3_6()" target="_blank">الأبناء الغير سعوديين</a><br/>';
+    msg += goTOPrevMenu('PPA_servicesMenu()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_3_1() {
+    appendCustomerChat('استبعاد الإناث');
+    var msg = '<span><strong>يتم إستبعاد الإناث في الحالات الآتيه:</strong></span><br/>';
+    msg += '<span>في حال الزواج، أو الالتحاق بوظيفة حكومية خاضعة لنظام التقاعد.</span><br/>';
+    msg += goTOPrevMenu('PPA_3()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_3_2() {
+    appendCustomerChat('استبعاد الذكور');
+    var msg = '<span><strong>يتم إستبعاد الذكور في الحالات الآتيه:</strong></span><br/>';
+    msg += '<span>- إذا بلغ الذكر سن 21 ، ولم يتم تقديم مشهد دراسي.</span><br/>';
+    msg += '<span>- إذا حصل الذكر على وظيفة حكومية خاضعة لنظام التقاعد من قبل سن 21 سنة.</span><br/>';
+    msg += '<span>- إذا تخرج الذكر، أو قام بالانقطاع عن الدراسة - ايهما اقرب .</span><br/>';
+    msg += '<span>- في حال تقديم المشاهد الدراسية بشكل منتظم يستمر الصرف حتى بلوغ سن 26 عاماً ثم يقطع نهائياً.</span><br/>';
+    msg += goTOPrevMenu('PPA_3()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_3_3() {
+    appendCustomerChat('الزوجة المتقاعدة /الموظفة');
+    var msg = '<span>تستحق الزوجة معاش زوجها في حال كان نصيبها بمعاش زوجها اكبر من معاشها التقاعدي.</span><br/>';
+    msg += goTOPrevMenu('PPA_3()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_3_4() {
+    appendCustomerChat('الزوجة الأجنية');
+    var msg = '<span>يصرف معاش تقاعدي للزوجة الأجنبية في حال وفاة زوجها المتقاعد.كما هو الحال إذا تم إدراج أسم الزوجة الأجنبية بصك حصر الورثة، فإنه يتم تخصيص معاش تقاعدي لها.</span><br/>';
+    msg += goTOPrevMenu('PPA_3()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_3_5() {
+    appendCustomerChat('الجمع بين معاشين');
+    var msg = '<span>لا يحق للمستفيدين الجمع بين معاشين، ويصرف لهما المعاش الأكبر.</span><br/>';
+    msg += goTOPrevMenu('PPA_3()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function PPA_3_6() {
+    appendCustomerChat('الأبناء الغير سعوديين');
+    var msg = '<span>لا يتم صرف المعاش التقاعدي للأبناء (الغير سعوديين)، وذلك بناء على أنظمة ولوائح المؤسسة.</span><br/>';
+    msg += goTOPrevMenu('PPA_3()') + generatePPAServiceMenuBtn();
+    appendAgentChat(msg);
+}
+
+function generatePPAServiceMenuBtn() {
+	var msg = '';
+	if(userRole === 'SINGLE' && !showGOSI){
+		
+		msg = '<a id="gosi-btn" class="linkBtn" onclick="startNLUChat(\'Gosi\')" target="_blank">نظام التأمينات</a><br/>';
+		
+	}
+   
+    return msg;
+}
+
+function appendWelcomeMsgFromBotPPA(chat_msg) {
+    chatServiceType = "PPA";
+	executeRasaApi(`setWhatSitePPA`, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+    if (chat_msg.cust_pro_link !== undefined && chat_msg.cust_pro_link != null) {
+        profileLinkGlobal = chat_msg.cust_pro_link;
+    }
+    if (chat_msg.id !== undefined && chat_msg.id != null) {
+        idGlobal = chat_msg.id;
+        showFeedback = true;
+    }
+    if (chat_msg.name !== undefined && chat_msg.name != null) {
+        nameGlobal = chat_msg.name;
+    }
+    const today = new Date();
+    const timeStr = today.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true });
+    var msg = chat_msg.msg + '<br>';
+    if (chat_msg.user_type !== undefined && chat_msg.user_type.length > 1) {
+        msgFromBotGlobal = chat_msg;
+        userTypesList = chat_msg.user_type;
+        appendAgentChat('<p> ' + msgFromBotGlobal.msg + '</p> <br/>');
+        generateUserTypesLinksPPA();
+        return;
+    }
+    var usertype = chat_msg.user_type[0];
+    loggedUser = usertype;
+    if (loggedUser !== undefined) {
+        msgFromBotGlobal = chat_msg;
+        appendAgentChat('<p> ' + msgFromBotGlobal.msg + '</p> <br/>');
+        generateUserTypeMenu(loggedUser);
+        return;
+    }
+    const fromAgent = '<div class="agent_chat">' +
+        '	 <div class="agent_msg">' + msg + '</div><br>' +
+        '	 <span class="agent_msg_time">' + timeStr + '</span>' +
+        '</div>';
+
+    $('#chat_pane').animate({ scrollTop: $('#chat_pane')[0].scrollHeight }, 1000);
+    $('#chat-conv').append(fromAgent);
+
+    var chatDiv = $("<div />").append($("#chat-conv").clone()).html();
+    localStorage.setItem('fcc_chatConv', chatDiv);
+}
+
+function yesIdo_PPA() {
+    if (inImportantService) {
+        if (idIsValid == true) {
+            if (idGlobal === undefined) {
+                appendAgentChat('للمتابعة الرجاء ادخال رمز التحقق');
+            } else {
+                appendAgentChat('تفضل بكتابة استفسارك');
+            }
+        } else {
+            appendAgentChat('للمتابعة الرجاء ادخال رقم الهوية/الاقامة');
+        }
+    } else {
+        appendAgentChat('تفضل بكتابة استفسارك');
+    }
+}
+
+function startPPAChat() {
+    appendCustomerChat('نظام التقاعد');
+    chatServiceType = 'PPA';
+    document.getElementById("gosi-btn").disabled = "true";
+    PPA_MainMenu();
+}
+
+function pensionerVirtualCard() {
+    executeRasaApi(`التقاعد الافتراضية`, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+
+function printPensionCert(certType) {
+    executeRasaApi(certType, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+
+function resetPPAGlobalvalues() {
+    userTypesList = [];
+    loggedUser = undefined;
+    inImportantService = false;
+    serviceFailure = false;
+    pensionObject = {};
+    idGlobal = undefined;
+    idIsValid = false;
+}
+
+function pensionerVirtualCard() {
+    executeRasaApi(`التقاعد الافتراضية`, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+function printPensionCert(certType) {
+    executeRasaApi(certType, function(data) {
+        appendAgentChat(data[data.length - 1].custom.text);
+    })
+}
+
+function startPPAConversion() {
+
+    var customerObject = new myLibrary_ppa.Datatype.CustomerObject();
+    var key = idGlobal;
+    if (idGlobal == null || idGlobal === undefined) {
+        key = create_UUID();
+    }
+    var mail = key + '@any.com'
+    customerObject.SetPrimaryKey(customerObject.PrimaryKeyParams.PRIMARY_KEY_EMAIL, key + '@any.com');
+    var customerFirstName = new myLibrary_ppa.Datatype.CustomerParameter();
+    customerFirstName.eGainParentObject = "casemgmt";
+    customerFirstName.eGainChildObject = "individual_customer_data";
+    customerFirstName.eGainAttribute = "first_name";
+    if (nameGlobal != null && nameGlobal !== undefined) {
+        customerFirstName.eGainValue = nameGlobal;
+    } else {
+        customerFirstName.eGainValue = 'Customer';
+    }
+    customerFirstName.eGainParamName = "first_name";
+    customerFirstName.eGainMinLength = "1";
+    customerFirstName.eGainMaxLength = "50";
+    customerFirstName.eGainRequired = "1";
+    customerFirstName.eGainFieldType = "1";
+    customerFirstName.eGainPrimaryKey = "0";
+    customerFirstName.eGainValidationString = "";
+    customerObject.AddCustomerParameter(customerFirstName);
+
+    var customerLastName = new myLibrary_ppa.Datatype.CustomerParameter();
+    customerLastName.eGainParentObject = "casemgmt";
+    customerLastName.eGainChildObject = "activity_data";
+    customerLastName.eGainAttribute = "national_id";
+    if (idGlobal != null) {
+        customerLastName.eGainValue = idGlobal;
+    }
+    customerLastName.eGainParamName = "national_id";
+    customerLastName.eGainMinLength = "1";
+    customerLastName.eGainMaxLength = "250";
+    customerLastName.eGainRequired = "1";
+    customerLastName.eGainFieldType = "1";
+    customerLastName.eGainPrimaryKey = "0";
+    customerLastName.eGainValidationString = "";
+    customerObject.AddCustomerParameter(customerLastName);
+
+    var customerEmail = new myLibrary_ppa.Datatype.CustomerParameter();
+    customerEmail.eGainParentObject = "casemgmt";
+    customerEmail.eGainChildObject = "email_address_contact_point_data";
+    customerEmail.eGainAttribute = "email_address";
+    customerEmail.eGainValue = mail;
+
+    customerEmail.eGainParamName = "email_address";
+    customerEmail.eGainMinLength = "1";
+    customerEmail.eGainMaxLength = "50";
+    customerEmail.eGainRequired = "1";
+    customerEmail.eGainFieldType = "1";
+    customerEmail.eGainPrimaryKey = "1";
+    customerEmail.eGainValidationString = "";
+    customerObject.AddCustomerParameter(customerEmail);
+
+    var customerPhone = new myLibrary_ppa.Datatype.CustomerParameter();
+    customerPhone.eGainParentObject = "casemgmt";
+    customerPhone.eGainChildObject = "phone_number_data";
+    customerPhone.eGainAttribute = "phone_number";
+    customerPhone.eGainValue = '012345678';
+    customerPhone.eGainParamName = "phone_number";
+    customerPhone.eGainMinLength = "1";
+    customerPhone.eGainMaxLength = "18";
+    customerPhone.eGainRequired = "1";
+    customerPhone.eGainFieldType = "1";
+    customerPhone.eGainPrimaryKey = "0";
+    customerPhone.eGainValidationString = "";
+    customerObject.AddCustomerParameter(customerPhone);
+
+    var SkillGroup = new myLibrary_ppa.Datatype.CustomerParameter();
+    SkillGroup.eGainParentObject = "casemgmt";
+    SkillGroup.eGainChildObject = "activity_data";
+    SkillGroup.eGainAttribute = "gosi_skill_group";
+    SkillGroup.eGainValue = 'PPA_Chat';
+    SkillGroup.eGainParamName = "gosi_skill_group";
+    SkillGroup.eGainMinLength = "1";
+    SkillGroup.eGainMaxLength = "20";
+    SkillGroup.eGainRequired = "1";
+    SkillGroup.eGainFieldType = "1";
+    SkillGroup.eGainPrimaryKey = "0";
+    SkillGroup.eGainValidationString = "";
+    customerObject.AddCustomerParameter(SkillGroup);
+    myLibrary_ppa.SetCustomer(customerObject);
+	if(idGlobal != null && idGlobal != ''){
+		myChat_ppa.Start();
+	}
+}
+
